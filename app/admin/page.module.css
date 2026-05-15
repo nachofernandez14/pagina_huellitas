@@ -1,0 +1,304 @@
+﻿/* ── Header ───────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+.title {
+  font-family: var(--font-title);
+  font-size: 1.875rem;
+  color: var(--green-dark);
+  margin: 0;
+}
+.subtitle {
+  color: var(--gray);
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+  text-transform: capitalize;
+}
+
+/* ── Skeleton loading ─────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e6e6e6 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius);
+}
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+@media (max-width: 1300px) { .skeletonGrid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px)  { .skeletonGrid { grid-template-columns: repeat(2, 1fr); } }
+.skeletonCard  { height: 92px; }
+.skeletonRow   { display: grid; grid-template-columns: 3fr 2fr; gap: 1.5rem; }
+.skeletonPanel { height: 260px; }
+@media (max-width: 960px) { .skeletonRow { grid-template-columns: 1fr; } }
+
+/* ── KPI Grid ─────────────────────────────────────────────── */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+@media (max-width: 1300px) { .kpiGrid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px)  { .kpiGrid { grid-template-columns: repeat(2, 1fr); } }
+
+.kpiCard {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.25rem 1.125rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-top: 3px solid transparent;
+  transition: box-shadow 0.2s, transform 0.2s;
+  min-width: 0;
+}
+.kpiCard:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.kpiWarning { border-top-color: #dc2626 !important; }
+
+.kpiIcon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.kpiGreen  { background: rgba(14,143,68,0.1);  color: var(--green-dark); }
+.kpiBlue   { background: rgba(59,130,246,0.1); color: #2563eb; }
+.kpiOrange { background: rgba(245,158,11,0.1); color: #b45309; }
+.kpiPurple { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.kpiRed    { background: rgba(220,38,38,0.1);  color: #dc2626; }
+
+.kpiText { min-width: 0; flex: 1; }
+.kpiValue {
+  font-family: var(--font-title);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--dark);
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kpiLabel {
+  font-size: 0.72rem;
+  color: var(--gray);
+  margin-top: 0.3rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Charts row ───────────────────────────────────────────── */
+.row {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 960px) { .row { grid-template-columns: 1fr; } }
+
+.panel { padding: 1.5rem !important; }
+.panelTitle {
+  font-family: var(--font-title);
+  font-size: 1rem;
+  color: var(--green-dark);
+  margin: 0 0 1.25rem;
+}
+
+/* ── Sales Bar Chart ──────────────────────────────────────── */
+.chartWrap { display: flex; flex-direction: column; }
+.chartLegend {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.875rem;
+}
+.legendWeb,
+.legendLocal {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.73rem;
+  color: var(--gray);
+}
+.legendWeb::before {
+  content: '';
+  width: 10px; height: 10px;
+  border-radius: 3px;
+  background: var(--green);
+  display: block;
+}
+.legendLocal::before {
+  content: '';
+  width: 10px; height: 10px;
+  border-radius: 3px;
+  background: var(--accent);
+  display: block;
+}
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 180px;
+}
+.chartBar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  height: 100%;
+  min-width: 0;
+}
+.chartValue {
+  font-size: 0.56rem;
+  color: var(--gray);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  width: 100%;
+  line-height: 1.2;
+}
+.barTrack {
+  flex: 1;
+  width: 100%;
+  background: var(--gray-light);
+  border-radius: 5px 5px 0 0;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.barFill {
+  width: 100%;
+  background: linear-gradient(180deg, var(--green-dark) 0%, var(--green) 100%);
+  border-radius: 5px 5px 0 0;
+  transition: height 0.5s ease;
+  position: relative;
+  overflow: hidden;
+  min-height: 3px;
+}
+.barWeb {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: var(--accent);
+  opacity: 0.8;
+}
+.chartLabel {
+  font-size: 0.6rem;
+  color: var(--gray);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* ── Empty chart ──────────────────────────────────────────── */
+.emptyChart {
+  height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+.emptyBars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 80px;
+  opacity: 0.25;
+}
+.emptyBars span {
+  flex: 1;
+  background: var(--gray-light);
+  border-radius: 4px 4px 0 0;
+  display: block;
+}
+.emptyMsg { font-size: 0.82rem; color: var(--gray); }
+
+/* ── Horizontal Bar Chart (top products) ─────────────────── */
+.horizChart { display: flex; flex-direction: column; gap: 1rem; }
+.horizRow   { display: flex; flex-direction: column; gap: 0.35rem; }
+.horizTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.horizLabel {
+  font-size: 0.8rem;
+  color: var(--dark);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.horizVal {
+  font-size: 0.73rem;
+  color: var(--gray);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.horizTrack {
+  height: 8px;
+  background: var(--gray-light);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.horizFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green-dark), var(--green));
+  border-radius: 999px;
+  transition: width 0.6s ease;
+  min-width: 4px;
+}
+
+/* ── Mini table ───────────────────────────────────────────── */
+.miniTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.miniTable thead { border-bottom: 2px solid var(--gray-light); }
+.miniTable th {
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--gray);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.miniTable td { padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--gray-light); }
+.miniTable tr:last-child td { border-bottom: none; }
+
+/* ── Pending orders widget ────────────────────────────────── */
+.pendingHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0;
+}
+.viewAll {
+  font-size: 0.8rem;
+  color: var(--green-dark);
+  text-decoration: none;
+  font-weight: 600;
+}
+.viewAll:hover { text-decoration: underline; }
+
+.tagRetiro { background: #fef3c7; color: #92400e; padding: 0.15rem 0.55rem; border-radius: 99px; font-size: 0.72rem; font-weight: 600; }
+.tagEnvio  { background: #dbeafe; color: #1e40af; padding: 0.15rem 0.55rem; border-radius: 99px; font-size: 0.72rem; font-weight: 600; }
+.tagMP     { background: #e0f2fe; color: #0369a1; padding: 0.15rem 0.55rem; border-radius: 99px; font-size: 0.72rem; font-weight: 600; }
+

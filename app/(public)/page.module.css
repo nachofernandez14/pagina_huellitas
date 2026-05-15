@@ -1,0 +1,179 @@
+﻿/* ── Section backgrounds ──────────────────────────────────── */
+.sectionCats {
+  background: #f3fdf7;
+  border-bottom: 3px solid var(--green-light);
+}
+
+.sectionTrust {
+  background: #fffaf6;
+  padding-bottom: 4rem;
+}
+
+.sectionOffers {
+  background: var(--white);
+  border-top: 3px solid var(--accent);
+  border-bottom: 3px solid var(--accent);
+}
+
+.offersTitle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(90deg, #f97316, #ef4444);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 2rem !important;
+  letter-spacing: -0.5px;
+  width: 100%;
+}
+
+.offersTitleIcon {
+  color: #f97316;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.6));
+  animation: flamePulse 1.4s ease-in-out infinite;
+}
+
+.offersTitleIconRight {
+  animation-delay: 0.7s;
+  transform-origin: center;
+}
+
+@keyframes flamePulse {
+  0%, 100% { transform: scale(1) rotate(-4deg); filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.6)); }
+  50%       { transform: scale(1.18) rotate(4deg); filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.8)); }
+}
+
+/* ── Categories ───────────────────────────────────────────── */
+
+.catGrid {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: nowrap;
+}
+
+.catCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  text-decoration: none;
+  flex: 1;
+  max-width: 200px;
+}
+
+.catCircle {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  border: 4px solid transparent;
+  transition: var(--transition);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.catCard:hover .catCircle {
+  border-color: var(--green);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 28px rgba(24,216,96,0.30);
+}
+
+.catLabel {
+  font-family: var(--font-title);
+  font-size: 1.05rem;
+  color: var(--dark);
+  text-align: center;
+  font-weight: 600;
+}
+
+/* ── Trust section ───────────────────────────────────────── */
+
+.sectionTrustTitle {
+  font-family: var(--font-title);
+  font-size: clamp(1.6rem, 3vw, 2rem);
+  color: var(--green-dark);
+  text-align: center;
+  margin-bottom: 0.4rem;
+}
+
+.sectionTrustSub {
+  text-align: center;
+  color: var(--gray);
+  font-size: 0.95rem;
+  margin-bottom: 2.5rem;
+}
+
+.trustGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.trustItem {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 2rem 1.25rem 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+  border-bottom: 3px solid transparent;
+}
+
+.trustItem:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-bottom-color: var(--green);
+}
+
+.trustIconWrap {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--green-light), #d4fae4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-dark);
+  flex-shrink: 0;
+}
+
+.trustTitle {
+  font-family: var(--font-title);
+  font-size: 1rem;
+  color: var(--dark);
+}
+
+.trustDesc { font-size: 0.82rem; color: var(--gray); line-height: 1.5; }
+
+/* ── Responsive ─────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .heroInner { flex-direction: column; text-align: center; }
+  .heroImg { width: 220px; height: 220px; }
+  .heroSubtitle { margin: 0 auto 2rem; }
+  .heroActions { justify-content: center; }
+  .catGrid { gap: 1rem; }
+  .catCircle { width: 86px; height: 86px; }
+  .trustGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .hero { padding: 3rem 0; }
+  .heroImg { width: 160px; height: 160px; }
+  .catGrid { gap: 0.6rem; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 0.5rem; justify-content: flex-start; scrollbar-width: none; }
+  .catGrid::-webkit-scrollbar { display: none; }
+  .catCard { max-width: 90px; flex-shrink: 0; }
+  .catCircle { width: 68px; height: 68px; }
+  .catLabel { font-size: 0.78rem; }
+  .trustGrid { grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .trustItem { padding: 1.5rem 1rem 1.25rem; }
+  .promoStrip { font-size: 0.75rem; }
+}

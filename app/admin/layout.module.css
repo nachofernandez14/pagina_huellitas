@@ -1,0 +1,29 @@
+.shell {
+  display: flex;
+  min-height: 100vh;
+  /* Override brand font inside admin panel — keep it professional */
+  --font-title: var(--font-body);
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  margin-left: 240px;
+  background: var(--bg);
+  min-height: 100vh;
+  padding: 2rem 2.5rem;
+}
+
+@media (max-width: 1200px) and (min-width: 769px) {
+  .content {
+    padding: 1.5rem 0.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    margin-left: 0;
+    padding: 1rem;
+    padding-top: calc(52px + 1rem); /* account for mobile header height */
+  }
+}
