@@ -23,7 +23,10 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Product
     query = query.eq('categoria', categoria);
   }
   if (search) {
-    query = query.ilike('nombre', `%${search}%`);
+    const words = search.trim().split(/\s+/).filter(Boolean);
+    for (const w of words) {
+      query = query.ilike('nombre', `%${w}%`);
+    }
   }
 
   const { data, error } = await query;

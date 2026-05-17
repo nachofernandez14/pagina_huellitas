@@ -37,7 +37,7 @@ export async function createMercadoPagoPreference(
     unit_price: Number(item.precio),
     currency_id: 'ARS',
     ...(item.imagen && !isLocalhost
-      ? { picture_url: `${siteUrl}/images/${item.imagen}` }
+      ? { picture_url: item.imagen.startsWith('http') ? item.imagen : `${siteUrl}/images/${item.imagen}` }
       : {}),
   }));
 

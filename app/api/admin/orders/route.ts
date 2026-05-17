@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sendOrderStatusEmail, ESTADOS_CON_EMAIL } from '@/lib/email';
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -72,5 +73,17 @@ export async function PATCH(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Enviar email al cliente si el nuevo estado lo requiere
+  if (estado && ESTADOS_CON_EMAIL.has(estado) && data?.guest_email) {
+    sendOrderStatusEmail({
+      to: data.guest_email,
+      nombre: data.guest_nombre ?? null,
+      orderId: data.id,
+      estado,
+      tipoEntrega: data.tipo_entrega ?? null,
+    }).catch(() => { /* fallo silencioso */ });
+  }
+
   return NextResponse.json(data);
 }

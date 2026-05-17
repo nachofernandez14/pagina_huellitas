@@ -54,7 +54,9 @@ export default function RegistroPage() {
     return (
       <div className={styles.page}>
         <div className={`card ${styles.box}`} style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem' }}>
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
           <h1 className={styles.title}>¡Cuenta creada!</h1>
           <p className={styles.subtitle}>
             Tu cuenta está lista. Podés ingresar ahora.

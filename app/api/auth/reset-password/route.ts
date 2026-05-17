@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { sendPasswordResetEmail } from '@/lib/email';
 
-// POST /api/auth/reset-password — sends a password reset email
+// POST /api/auth/reset-password — genera el link y envía mail propio (no Supabase)
 export async function POST(req: NextRequest) {
   // Rate limit: 3 requests per IP per 15 minutes
   const ip = getClientIp(req);
@@ -23,12 +24,27 @@ export async function POST(req: NextRequest) {
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
-  const supabase = await createClient();
+  const normalizedEmail = email.toLowerCase().trim();
 
-  // Always returns success to avoid user enumeration
-  await supabase.auth.resetPasswordForEmail(email.toLowerCase().trim(), {
-    redirectTo: `${siteUrl}/recuperar-contrasena/nueva`,
-  });
+  try {
+    // Genera el link sin que Supabase envíe nada
+    const admin = createAdminClient();
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: 'recovery',
+      email: normalizedEmail,
+      options: { redirectTo: `${siteUrl}/recuperar-contrasena/nueva` },
+    });
+
+    if (error || !data?.properties?.action_link) {
+      // Siempre respondemos OK para no revelar si el email existe
+      return NextResponse.json({ ok: true });
+    }
+
+    await sendPasswordResetEmail(normalizedEmail, data.properties.action_link);
+  } catch {
+    // Fallo silencioso — no revelar si el email existe
+  }
 
   return NextResponse.json({ ok: true });
 }
+

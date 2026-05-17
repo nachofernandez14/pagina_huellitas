@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { CartItem, GuestCheckoutData, Order } from '@/types';
+import { sendOrderConfirmationEmail } from '@/lib/email';
 
 export async function createOrder(params: {
   items: CartItem[];
@@ -54,7 +55,28 @@ export async function createOrder(params: {
     .single();
 
   if (error) throw new Error(error.message);
-  return data as Order;
+  const order = data as Order;
+
+  // Enviar email de confirmación (sin await para no bloquear la respuesta)
+  const emailTo = order.guest_email;
+  if (emailTo) {
+    const entregaInfo = guest
+      ? { tipoEntrega: guest.tipoEntrega, zona: guest.zona, direccion: guest.direccion }
+      : delivery;
+    sendOrderConfirmationEmail({
+      to: emailTo,
+      nombre: order.guest_nombre ?? null,
+      orderId: order.id,
+      items,
+      total,
+      tipoEntrega: entregaInfo?.tipoEntrega ?? null,
+      zona: entregaInfo?.zona ?? null,
+      direccion: entregaInfo?.tipoEntrega === 'envio' ? (entregaInfo.direccion ?? null) : null,
+      formaPago: formaPago ?? null,
+    }).catch(() => { /* fallo silencioso — no cancela el pedido */ });
+  }
+
+  return order;
 }
 
 export async function updateOrderPayment(

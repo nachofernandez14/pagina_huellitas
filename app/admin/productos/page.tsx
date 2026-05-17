@@ -57,6 +57,12 @@ export default function ProductosAdmin() {
   const openEdit = (p: Product) => setModal({ open: true, data: { ...p }, isNew: false });
   const closeModal = () => setModal((m) => ({ ...m, open: false }));
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModal(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const handleSave = async () => {
     setSaving(true);
     const { id, created_at, updated_at, ...body } = modal.data as Product;
@@ -87,8 +93,9 @@ export default function ProductosAdmin() {
   const set = (k: keyof Product, v: unknown) =>
     setModal((m) => ({ ...m, data: { ...m.data, [k]: v } }));
 
+  const searchWords = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
   const filtered = products.filter((p) =>
-    p.nombre.toLowerCase().includes(search.toLowerCase())
+    searchWords.every((w) => p.nombre.toLowerCase().includes(w))
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -204,8 +211,8 @@ export default function ProductosAdmin() {
 
       {/* Modal */}
       {modal.open && (
-        <div className={styles.overlay} onClick={closeModal}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.overlay}>
+          <div className={styles.modal}>
             <div className={styles.modalHeader}>
               <h2>{modal.isNew ? 'Nuevo producto' : 'Editar producto'}</h2>
               <button className={styles.close} onClick={closeModal}>✕</button>

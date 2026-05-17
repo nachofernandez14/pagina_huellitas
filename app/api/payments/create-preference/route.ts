@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     const productIds = items.map((i) => i.id);
     const { data: dbProducts, error: dbError } = await supabase
       .from('products')
-      .select('id, precio, variantes, activo')
+      .select('id, precio, activo')
       .in('id', productIds);
 
     if (dbError || !dbProducts) {
@@ -94,21 +94,10 @@ export async function POST(req: NextRequest) {
       if (!dbProduct || !dbProduct.activo) {
         throw new Error(`El producto "${item.nombre}" ya no está disponible.`);
       }
-
-      // If the product has variants, find the matching one by kg
-      let verifiedPrice: number;
-      if (dbProduct.variantes && Array.isArray(dbProduct.variantes) && dbProduct.variantes.length > 0 && item.kg) {
-        const variant = (dbProduct.variantes as { kg: string; precio: number }[]).find((v) => v.kg === item.kg);
-        if (!variant) throw new Error(`La presentación "${item.kg}" de "${item.nombre}" ya no está disponible.`);
-        verifiedPrice = variant.precio;
-      } else {
-        if (dbProduct.precio === null || dbProduct.precio === undefined) {
-          throw new Error(`El producto "${item.nombre}" no tiene precio configurado.`);
-        }
-        verifiedPrice = Number(dbProduct.precio);
+      if (dbProduct.precio === null || dbProduct.precio === undefined) {
+        throw new Error(`El producto "${item.nombre}" no tiene precio configurado.`);
       }
-
-      return { ...item, precio: verifiedPrice };
+      return { ...item, precio: Number(dbProduct.precio) };
     });
 
     const verifiedTotal = verifiedItems.reduce((sum, i) => sum + i.precio * i.quantity, 0);

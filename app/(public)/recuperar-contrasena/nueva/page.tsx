@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -13,42 +13,60 @@ export default function NuevaContrasenaPage() {
   const [error, setError] = useState('');
   const [ready, setReady] = useState(false);
   const [invalidLink, setInvalidLink] = useState(false);
+  const readyRef = useRef(false);
   const router = useRouter();
 
   useEffect(() => {
     const supabase = createClient();
 
-    // Supabase detects the recovery token from the URL hash automatically
-    // and fires PASSWORD_RECOVERY when the session is ready
+    const markReady = () => {
+      readyRef.current = true;
+      setReady(true);
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setReady(true);
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') markReady();
+    });
+
+    // Caso 1: token en el hash (#access_token=...&type=recovery)
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+      const hashParams = new URLSearchParams(hash);
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token') ?? '';
+      if (accessToken) {
+        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+          .then(({ error: err }) => {
+            if (!err) {
+              // Limpiar el hash de la URL para que no quede visible
+              window.history.replaceState(null, '', window.location.pathname);
+              markReady();
+            }
+          });
       }
-    });
+    }
 
-    // Fallback: if already has a session with recovery type
+    // Caso 2: código PKCE en query param (?code=...)
+    const code = new URLSearchParams(window.location.search).get('code');
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code)
+        .then(({ error: err }) => { if (!err) markReady(); });
+    }
+
+    // Fallback: sesión ya activa
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
+      if (session) markReady();
     });
 
-    // If after 4 seconds there's still no recovery event, the link is invalid/expired
     const timeout = setTimeout(() => {
-      setInvalidLink((prev) => {
-        if (!prev) return true; // only set if not already ready
-        return prev;
-      });
-    }, 4000);
+      if (!readyRef.current) setInvalidLink(true);
+    }, 10000);
 
     return () => {
       subscription.unsubscribe();
       clearTimeout(timeout);
     };
   }, []);
-
-  // Once ready, cancel the invalid-link timeout logic
-  useEffect(() => {
-    if (ready) setInvalidLink(false);
-  }, [ready]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
