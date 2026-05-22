@@ -32,26 +32,48 @@ function fmt(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
 }
 
-function SalesChart({ data }: { data: Stats['weekSales'] }) {
-  // Build days array always (up to 7 past days)
+function LineChart({ data }: { data: Stats['weekSales'] }) {
+  const W = 500, H = 210;
+  const P = { t: 16, r: 16, b: 38, l: 58 };
+  const cw = W - P.l - P.r;
+  const ch = H - P.t - P.b;
+
   const today = new Date();
-  const allDays: string[] = Array.from({ length: 7 }, (_, i) => {
+  const allDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
     d.setDate(d.getDate() - (6 - i));
     return d.toISOString().split('T')[0];
   });
 
-  const byDate: Record<string, { web: number; local: number }> = {};
-  allDays.forEach((d) => { byDate[d] = { web: 0, local: 0 }; });
-  data.forEach((d) => {
-    if (!byDate[d.fecha]) byDate[d.fecha] = { web: 0, local: 0 };
-    if (d.canal === 'local' || d.canal === 'caja') byDate[d.fecha].local += Number(d.total_ventas);
-    else if (d.canal === 'web') byDate[d.fecha].web += Number(d.total_ventas);
+  const byDate: Record<string, number> = {};
+  allDays.forEach((d) => { byDate[d] = 0; });
+  data.forEach((d) => { byDate[d.fecha] = (byDate[d.fecha] ?? 0) + Number(d.total_ventas); });
+
+  const values = allDays.map((d) => byDate[d] ?? 0);
+  const max = Math.max(...values, 1);
+
+  const px = (i: number) => P.l + (i / 6) * cw;
+  const py = (v: number) => P.t + ch - (v / max) * ch;
+
+  const points = values.map((v, i) => ({ x: px(i), y: py(v) }));
+
+  // Smooth bezier path
+  let linePath = `M ${points[0].x},${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const cpx = (prev.x + curr.x) / 2;
+    linePath += ` C ${cpx},${prev.y} ${cpx},${curr.y} ${curr.x},${curr.y}`;
+  }
+  const areaPath = `${linePath} L ${points[6].x},${P.t + ch} L ${P.l},${P.t + ch} Z`;
+
+  const ySteps = [0, 0.33, 0.67, 1];
+  const dayLabels = allDays.map((d) => {
+    const label = new Date(d + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', '');
+    return label.charAt(0).toUpperCase() + label.slice(1, 3);
   });
 
-  const days = allDays.map((f) => ({ fecha: f, ...byDate[f] }));
-  const max = Math.max(...days.map((v) => v.web + v.local), 1);
-  const hasData = days.some((d) => d.web + d.local > 0);
+  const hasData = values.some((v) => v > 0);
 
   if (!hasData) {
     return (
@@ -67,34 +89,51 @@ function SalesChart({ data }: { data: Stats['weekSales'] }) {
   }
 
   return (
-    <div className={styles.chartWrap}>
+    <div>
       <div className={styles.chartLegend}>
-        <span className={styles.legendWeb}>Web</span>
-        <span className={styles.legendLocal}>Local</span>
+        <span className={styles.legendLine}>
+          <span className={styles.legendDot} style={{ background: '#3b82f6' }} />
+          Total ventas
+        </span>
       </div>
-      <div className={styles.chart}>
-        {days.map(({ fecha, web, local }) => {
-          const total = web + local;
-          const pct = total > 0 ? Math.max(Math.round((total / max) * 100), 5) : 0;
-          const webPct = total > 0 ? (web / total) * 100 : 0;
-          const label = new Date(fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric' });
+      <svg viewBox={`0 0 ${W} ${H}`} className={styles.lineChart} role="img" aria-label="Ventas por día">
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Grid lines + Y labels */}
+        {ySteps.map((f, i) => {
+          const ty = P.t + ch - f * ch;
+          const val = max * f;
           return (
-            <div key={fecha} className={styles.chartBar}>
-              {total > 0 && <span className={styles.chartValue}>{fmt(total)}</span>}
-              <div className={styles.barTrack}>
-                {pct > 0 && (
-                  <div className={styles.barFill} style={{ height: `${pct}%` }}>
-                    {web > 0 && local > 0 && (
-                      <div className={styles.barWeb} style={{ height: `${webPct}%` }} />
-                    )}
-                  </div>
-                )}
-              </div>
-              <span className={styles.chartLabel}>{label}</span>
-            </div>
+            <g key={i}>
+              {i > 0 && <line x1={P.l} y1={ty} x2={W - P.r} y2={ty} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />}
+              <text x={P.l - 8} y={ty + 4} textAnchor="end" fontSize="10" fill="#475569">
+                {val === 0 ? '$0' : val >= 1000 ? `$${(val / 1000).toFixed(val >= 10000 ? 0 : 1)}k` : `$${Math.round(val)}`}
+              </text>
+            </g>
           );
         })}
-      </div>
+
+        {/* Area fill */}
+        <path d={areaPath} fill="url(#areaGrad)" />
+
+        {/* Line */}
+        <path d={linePath} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Dots */}
+        {points.map((pt, i) => (
+          <circle key={i} cx={pt.x} cy={pt.y} r={4} fill="#3b82f6" stroke="#111827" strokeWidth="2" />
+        ))}
+
+        {/* X labels */}
+        {dayLabels.map((label, i) => (
+          <text key={i} x={px(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="#475569">{label}</text>
+        ))}
+      </svg>
     </div>
   );
 }
@@ -138,8 +177,10 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [pending, setPending] = useState<PendingOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [today, setToday] = useState('');
 
   useEffect(() => {
+    setToday(new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
     Promise.all([
       fetch('/api/admin/stats').then((r) => r.json()),
       fetch('/api/admin/orders?estado=paid&canal=web&limit=10').then((r) => r.json()),
@@ -150,10 +191,8 @@ export default function AdminDashboard() {
     }).catch(() => setLoading(false));
   }, []);
 
-  const today = new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
   return (
-    <div>
+    <div className={styles.page}>
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Dashboard</h1>
@@ -188,7 +227,7 @@ export default function AdminDashboard() {
                 <div className={styles.kpiLabel}>
                   Ventas hoy
                   {(stats?.totalCajaHoy ?? 0) > 0 && (
-                    <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--gray)', fontWeight: 400, marginTop: '2px' }}>
+                    <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', fontWeight: 400, marginTop: '2px' }}>
                       incl. {fmt(stats!.totalCajaHoy)} de caja
                     </span>
                   )}
@@ -252,8 +291,8 @@ export default function AdminDashboard() {
           {/* Charts row */}
           <div className={styles.row}>
             <div className={`card ${styles.panel}`}>
-              <h2 className={styles.panelTitle}>Ventas ultimos 7 dias</h2>
-              <SalesChart data={stats?.weekSales ?? []} />
+              <h2 className={styles.panelTitle}>Ventas últimos 7 días</h2>
+              <LineChart data={stats?.weekSales ?? []} />
             </div>
             <div className={`card ${styles.panel}`}>
               <h2 className={styles.panelTitle}>Top productos vendidos</h2>
@@ -276,7 +315,7 @@ export default function AdminDashboard() {
                       <td><span className="badge">{p.categoria}</span></td>
                       <td>{p.kg ?? '—'}</td>
                       <td>
-                        <span style={{ color: p.stock === 0 ? 'var(--error)' : 'var(--accent)', fontWeight: 700 }}>
+                        <span style={{ color: p.stock === 0 ? '#f87171' : '#22c55e', fontWeight: 700 }}>
                           {p.stock}
                         </span>
                       </td>
@@ -294,7 +333,7 @@ export default function AdminDashboard() {
               <Link href="/admin/pedidos" className={styles.viewAll}>Ver todos →</Link>
             </div>
             {pending.length === 0 ? (
-              <p style={{ color: 'var(--gray)', fontSize: '0.875rem', marginTop: '1rem' }}>
+              <p style={{ color: '#475569', fontSize: '0.875rem', marginTop: '1rem' }}>
                 Sin pedidos pagados pendientes de procesar.
               </p>
             ) : (
@@ -318,14 +357,14 @@ export default function AdminDashboard() {
                           ? <span className={styles.tagRetiro}>🏪 Retiro</span>
                           : o.tipo_entrega === 'envio'
                             ? <span className={styles.tagEnvio}>🚚 Envío</span>
-                            : <span style={{ color: 'var(--gray)' }}>—</span>}
+                            : <span style={{ color: '#64748b' }}>—</span>}
                       </td>
-                      <td style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>{o.zona ?? '—'}</td>
+                      <td style={{ fontSize: '0.8rem', color: '#64748b' }}>{o.zona ?? '—'}</td>
                       <td>
                         <span className={styles.tagMP}>MP</span>
                       </td>
                       <td style={{ fontWeight: 600 }}>{fmt(o.total)}</td>
-                      <td style={{ fontSize: '0.78rem', color: 'var(--gray)', whiteSpace: 'nowrap' }}>
+                      <td style={{ fontSize: '0.78rem', color: '#64748b', whiteSpace: 'nowrap' }}>
                         {new Date(o.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                       </td>
                     </tr>

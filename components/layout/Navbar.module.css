@@ -435,5 +435,6 @@
   .searchForm { max-width: unset; }
   .brandName { display: none; }
   .topInner { gap: 0.5rem; }
+  .logo img { width: 40px !important; height: 40px !important; }
 }
 

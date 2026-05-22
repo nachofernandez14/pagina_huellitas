@@ -1,0 +1,11 @@
+.main {
+  flex: 1;
+  padding-top: 109px;
+}
+
+/* On mobile the category nav is hidden so the navbar is shorter */
+@media (max-width: 768px) {
+  .main {
+    padding-top: 68px;
+  }
+}

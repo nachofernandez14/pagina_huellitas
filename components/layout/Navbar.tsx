@@ -264,6 +264,8 @@ export default function Navbar() {
         {/* Mobile menu */}
         {menuOpen && (
           <ul className={styles.mobileMenu}>
+            <li><Link href="/" onClick={() => setMenuOpen(false)}>Inicio</Link></li>
+            <li className={styles.mobileMenuDivider} />
             {CATEGORIES.map((c) => (
               <li key={c.href}>
                 <Link href={c.href} onClick={() => setMenuOpen(false)}>{c.label}</Link>

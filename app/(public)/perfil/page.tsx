@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
@@ -29,7 +30,15 @@ const ENTREGA_LABEL: Record<string, string> = {
   envio:  'Envío a domicilio',
 };
 
-export default async function PerfilPage() {
+export default function PerfilPage() {
+  return (
+    <Suspense fallback={null}>
+      <PerfilContent />
+    </Suspense>
+  );
+}
+
+async function PerfilContent() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -44,6 +53,7 @@ export default async function PerfilPage() {
     .from('orders')
     .select('*')
     .eq('user_id', user.id)
+    .neq('estado', 'cancelled')
     .order('created_at', { ascending: false })
     .limit(30);
 

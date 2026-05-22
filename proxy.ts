@@ -27,7 +27,14 @@ export async function proxy(request: NextRequest) {
 
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
+
+  // Si el refresh token no es válido, limpiar la sesión para evitar el error en logs
+  if (authError?.status === 400 || authError?.message?.includes('Refresh Token Not Found')) {
+    await supabase.auth.signOut();
+    return supabaseResponse;
+  }
 
   // Protect admin routes
   if (request.nextUrl.pathname.startsWith('/admin')) {

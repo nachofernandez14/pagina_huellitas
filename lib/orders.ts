@@ -55,28 +55,7 @@ export async function createOrder(params: {
     .single();
 
   if (error) throw new Error(error.message);
-  const order = data as Order;
-
-  // Enviar email de confirmación (sin await para no bloquear la respuesta)
-  const emailTo = order.guest_email;
-  if (emailTo) {
-    const entregaInfo = guest
-      ? { tipoEntrega: guest.tipoEntrega, zona: guest.zona, direccion: guest.direccion }
-      : delivery;
-    sendOrderConfirmationEmail({
-      to: emailTo,
-      nombre: order.guest_nombre ?? null,
-      orderId: order.id,
-      items,
-      total,
-      tipoEntrega: entregaInfo?.tipoEntrega ?? null,
-      zona: entregaInfo?.zona ?? null,
-      direccion: entregaInfo?.tipoEntrega === 'envio' ? (entregaInfo.direccion ?? null) : null,
-      formaPago: formaPago ?? null,
-    }).catch(() => { /* fallo silencioso — no cancela el pedido */ });
-  }
-
-  return order;
+  return data as Order;
 }
 
 export async function updateOrderPayment(
@@ -100,10 +79,38 @@ export async function markOrderPaid(
   const supabase = createAdminClient();
   const update: Record<string, unknown> = { estado: 'paid', mp_payment_id: mpPaymentId };
   if (formaPago) update.forma_pago = formaPago;
-  const { error } = await supabase
+  const { data: order, error } = await supabase
     .from('orders')
     .update(update)
-    .eq('id', orderId);
+    .eq('id', orderId)
+    .select()
+    .single();
 
   if (error) throw new Error(error.message);
+
+  // Send confirmation email now that payment is confirmed
+  if (order?.guest_email) {
+    const o = order as Order;
+    sendOrderConfirmationEmail({
+      to: o.guest_email!,
+      nombre: o.guest_nombre ?? null,
+      orderId: o.id,
+      items: o.productos,
+      total: o.total,
+      tipoEntrega: o.tipo_entrega ?? null,
+      zona: o.zona ?? null,
+      direccion: o.tipo_entrega === 'envio' ? (o.guest_direccion ?? null) : null,
+      formaPago: o.forma_pago ?? formaPago ?? null,
+    }).catch(() => { /* silent — never block the payment confirmation */ });
+  }
+}
+
+/** Cancels a pending order — idempotent, no-op if already paid/cancelled */
+export async function cancelOrder(orderId: string): Promise<void> {
+  const supabase = createAdminClient();
+  await supabase
+    .from('orders')
+    .update({ estado: 'cancelled' })
+    .eq('id', orderId)
+    .eq('estado', 'pending'); // Only cancel if still pending
 }

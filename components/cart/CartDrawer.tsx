@@ -69,7 +69,7 @@ export default function CartDrawer({ open, onClose }: Props) {
                 <li key={item.id} className={styles.item}>
                   <div className={styles.itemImg}>
                     <Image
-                      src={item.imagen ? `/images/${item.imagen}` : '/images/no-image.svg'}
+                      src={item.imagen ? (item.imagen.startsWith('http') ? item.imagen : `/images/${item.imagen}`) : '/images/no-image.svg'}
                       alt={item.nombre}
                       fill
                       sizes="64px"

@@ -1,7 +1,9 @@
 import Link from 'next/link';
-import { markOrderPaid } from '@/lib/orders';
+import { redirect } from 'next/navigation';
+import { markOrderPaid, cancelOrder } from '@/lib/orders';
 import { verifyMPPayment } from '@/lib/mercadopago';
 import { createClient } from '@/lib/supabase/server';
+import CartClearer from './CartClearer';
 
 interface Props {
   searchParams: Promise<{
@@ -35,6 +37,7 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
   const isEnvio = params.entrega === 'envio';
 
   let metodoPago: string | null = null;
+  let paymentConfirmed = false;
 
   // Verificar el pago con MP y marcar como pagado (fallback al webhook)
   if (paymentId && orderId && !isPending && !isCash) {
@@ -43,9 +46,16 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
       if (info && info.status === 'approved' && info.orderId === orderId) {
         metodoPago = METODO_LABELS[info.paymentType] ?? info.paymentType ?? null;
         await markOrderPaid(orderId, paymentId, metodoPago ?? undefined);
+        paymentConfirmed = true;
+      } else if (info && info.status !== 'approved') {
+        // Payment was rejected or not approved — cancel order and redirect to failure
+        if (orderId) {
+          try { await cancelOrder(orderId); } catch { /* silent */ }
+        }
+        redirect(`/checkout/failure?order=${orderId ?? ''}`);
       }
     } catch {
-      // Si falla no bloqueamos la página de éxito
+      // Si falla la verificación no bloqueamos la página de éxito
     }
   }
 
@@ -54,11 +64,33 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   const isLoggedIn = !!user;
 
+  // El carrito se limpia solo cuando el pago fue confirmado (MP aprobado o efectivo)
+  const shouldClearCart = isCash || paymentConfirmed;
+
   return (
     <div className="section" style={{ textAlign: 'center' }}>
+      {shouldClearCart && <CartClearer />}
       <div className="container" style={{ maxWidth: '600px', margin: '0 auto' }}>
-        <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>
-          {isCash ? '🏪' : isPending ? '⏳' : '✅'}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+          {isCash ? (
+            // Store icon
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#805ad5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+          ) : isPending ? (
+            // Clock icon
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          ) : (
+            // Check circle icon
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#38a169" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          )}
         </div>
         <h1 className="section-title" style={{ marginBottom: '0.75rem' }}>
           {isCash ? '¡Pedido confirmado!' : isPending ? 'Pago en revisión' : '¡Gracias por tu compra!'}
@@ -101,3 +133,4 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
     </div>
   );
 }
+

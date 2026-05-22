@@ -51,7 +51,7 @@ export default function CarritoPage() {
               <div key={item.id} className={`card ${styles.item}`}>
                 <div className={styles.imgWrap}>
                   <Image
-                    src={`/images/${item.imagen}`}
+                    src={item.imagen ? (item.imagen.startsWith('http') ? item.imagen : `/images/${item.imagen}`) : '/images/no-image.svg'}
                     alt={item.nombre}
                     fill
                     style={{ objectFit: 'contain' }}

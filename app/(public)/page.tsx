@@ -6,6 +6,7 @@ import ProductCard from '@/components/products/ProductCard';
 import HeroCarousel from '@/components/ui/HeroCarousel';
 import OffersCarousel from '@/components/ui/OffersCarousel';
 import Ticker from '@/components/ui/Ticker';
+import PromoBanner from '@/components/ui/PromoBanner';
 import styles from './page.module.css';
 import MarcasSection from '@/components/ui/MarcasSection';
 import { Truck, ShieldCheck, Star, MessageCircle, Flame } from 'lucide-react';
@@ -84,7 +85,7 @@ export default async function HomePage() {
             {CATEGORIES.map((cat) => (
               <Link key={cat.value} href={`/productos?categoria=${cat.value}`} className={styles.catCard}>
                 <div className={styles.catCircle}>
-                  <Image src={cat.img} alt={cat.label} fill style={{ objectFit: 'cover' }} sizes="(max-width: 480px) 68px, (max-width: 820px) 86px, 180px" />
+                  <Image src={cat.img} alt={cat.label} width={360} height={360} className={styles.catImg} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} sizes="(max-width: 480px) 68px, (max-width: 820px) 86px, 180px" />
                 </div>
                 <h3 className={styles.catLabel}>{cat.label}</h3>
               </Link>
@@ -100,10 +101,12 @@ export default async function HomePage() {
               Ofertas imperdibles
               <Flame size={28} strokeWidth={1.5} className={`${styles.offersTitleIcon} ${styles.offersTitleIconRight}`} />
             </h2>
-            <p className="section-subtitle text-center">Los mejores descuentos de la semana</p>
+            <p className={`section-subtitle text-center ${styles.offersSubtitle}`}>Los mejores descuentos de la semana</p>
           <OffersCarousel products={offers} />
         </div>
       </section>
+
+      <PromoBanner />
 
       {featured.length > 0 && (
         <section className="section" style={{ background: 'var(--white)' }}>

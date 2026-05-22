@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { revalidateTag } from 'next/cache';
 import type { Product } from '@/types';
 
 // GET /api/products?categoria=perros&q=agility&limit=50&offset=0&activo=all
@@ -65,6 +66,7 @@ export async function POST(req: NextRequest) {
       .select()
       .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    revalidateTag('products', 'max');
     return NextResponse.json(data, { status: 201 });
   }
 
@@ -78,5 +80,6 @@ export async function POST(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  revalidateTag('products', 'max');
   return NextResponse.json({ inserted: data?.length ?? 0 });
 }

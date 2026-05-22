@@ -41,6 +41,44 @@ export default function CheckoutPage() {
     });
   }, []);
 
+  // On every mount: cancel any MP order that was abandoned (e.g. user navigated away)
+  useEffect(() => {
+    const raw = sessionStorage.getItem('mp_pending');
+    if (!raw) return;
+    sessionStorage.removeItem('mp_pending');
+    try {
+      const { orderId, preferenceId } = JSON.parse(raw) as { orderId: string; preferenceId: string };
+      fetch('/api/payments/cancel-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, preferenceId }),
+      }).catch(() => {});
+      setError('El pago no fue completado. Podés intentarlo nuevamente.');
+    } catch { /* ignore parse errors */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Also handle bfcache restoration (browser Back restoring the frozen page)
+  useEffect(() => {
+    const handler = (e: PageTransitionEvent) => {
+      if (!e.persisted) return;
+      const raw = sessionStorage.getItem('mp_pending');
+      if (!raw) return;
+      sessionStorage.removeItem('mp_pending');
+      try {
+        const { orderId, preferenceId } = JSON.parse(raw) as { orderId: string; preferenceId: string };
+        fetch('/api/payments/cancel-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId, preferenceId }),
+        }).catch(() => {});
+      } catch { /* ignore parse errors */ }
+      setLoading(false);
+      setError('El pago no fue completado. Podés intentarlo nuevamente.');
+    };
+    window.addEventListener('pageshow', handler);
+    return () => window.removeEventListener('pageshow', handler);
+  }, []);
+
   // Guest form state
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
@@ -170,8 +208,8 @@ export default function CheckoutPage() {
         throw new Error(data.error ?? 'Error al procesar el pago');
       }
 
-      const { init_point } = await res.json();
-      clearCart();
+      const { init_point, orderId, preferenceId } = await res.json();
+      sessionStorage.setItem('mp_pending', JSON.stringify({ orderId, preferenceId }));
       window.location.href = init_point;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error inesperado');
@@ -645,7 +683,7 @@ export default function CheckoutPage() {
                   <li key={item.id} className={styles.summaryItem}>
                     <div className={styles.summaryItemImg}>
                       <Image
-                        src={item.imagen ? `/images/${item.imagen}` : '/images/no-image.svg'}
+                        src={item.imagen ? (item.imagen.startsWith('http') ? item.imagen : `/images/${item.imagen}`) : '/images/no-image.svg'}
                         alt={item.nombre}
                         fill
                         sizes="48px"

@@ -22,6 +22,7 @@ export default function ProductosAdmin() {
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [page, setPage] = useState(1);
@@ -39,17 +40,23 @@ export default function ProductosAdmin() {
     const params = new URLSearchParams({ limit: '1000', activo: 'all' });
     if (catFilter) params.set('categoria', catFilter);
     if (search) params.set('q', search);
-    const [prodRes, suppRes] = await Promise.all([
-      fetch(`/api/products?${params}`),
-      fetch('/api/admin/suppliers?simple=1'),
-    ]);
-    if (prodRes.ok) setProducts(await prodRes.json());
-    if (suppRes.ok) {
-      const suppData = await suppRes.json();
-      setSuppliers(Array.isArray(suppData) ? suppData : (suppData.data ?? []));
-    }
+    const res = await fetch(`/api/products?${params}`);
+    if (res.ok) setProducts(await res.json());
     setLoading(false);
   }, [search, catFilter]);
+
+  // Fetch suppliers once on mount (they rarely change)
+  useEffect(() => {
+    fetch('/api/admin/suppliers?simple=1')
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => setSuppliers(Array.isArray(data) ? data : (data.data ?? [])));
+  }, []);
+
+  // Debounce search: wait 400 ms after the user stops typing before triggering load
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput), 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -120,8 +127,8 @@ export default function ProductosAdmin() {
         <input
           type="search"
           placeholder="Buscar..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           className={styles.searchInput}
         />
         <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className={styles.filterSelect}>

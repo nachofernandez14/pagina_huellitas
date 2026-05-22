@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { cacheLife, cacheTag } from 'next/cache';
 import type { Product, ProductCategory } from '@/types';
 
 export interface ProductFilters {
@@ -9,7 +10,11 @@ export interface ProductFilters {
 }
 
 export async function getProducts(filters: ProductFilters = {}): Promise<Product[]> {
-  const supabase = await createClient();
+  'use cache';
+  cacheLife('hours');
+  cacheTag('products');
+
+  const supabase = createAdminClient();
   const { categoria, search, limit = 50, offset = 0 } = filters;
 
   let query = supabase
@@ -35,7 +40,11 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Product
 }
 
 export async function getTopOffers(limit = 9): Promise<Product[]> {
-  const supabase = await createClient();
+  'use cache';
+  cacheLife('hours');
+  cacheTag('products');
+
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('products')
     .select('*')
@@ -49,7 +58,11 @@ export async function getTopOffers(limit = 9): Promise<Product[]> {
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
-  const supabase = await createClient();
+  'use cache';
+  cacheLife('hours');
+  cacheTag('products');
+
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('products')
     .select('*')
@@ -62,7 +75,11 @@ export async function getProductById(id: string): Promise<Product | null> {
 
 /** Returns active products with the same name (siblings) excluding the given id. */
 export async function getProductSiblings(nombre: string, excludeId: string): Promise<Product[]> {
-  const supabase = await createClient();
+  'use cache';
+  cacheLife('hours');
+  cacheTag('products');
+
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('products')
     .select('*')

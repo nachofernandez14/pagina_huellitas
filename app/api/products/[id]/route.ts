@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { revalidateTag } from 'next/cache';
 
 async function requireAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
@@ -35,6 +36,7 @@ export async function PATCH(
   const { data, error } = await admin
     .from('products').update(update).eq('id', id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  revalidateTag('products', 'max');
   return NextResponse.json(data);
 }
 
@@ -51,6 +53,7 @@ export async function DELETE(
   const admin = createAdminClient();
   const { error } = await admin.from('products').delete().eq('id', id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  revalidateTag('products', 'max');
   return new NextResponse(null, { status: 204 });
 }
 
