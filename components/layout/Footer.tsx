@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import styles from './Footer.module.css';
@@ -86,8 +88,8 @@ export default function Footer() {
                     <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/>
                   </svg>
                 </span>
-                <a href="mailto:marcelofernandez65.mf@gmail.com" className={styles.emailLink}>
-                  marcelofernandez65.mf@gmail.com
+                <a href="mailto:petshophuellitas65@gmail.com" className={styles.emailLink}>
+                  petshophuellitas65@gmail.com
                 </a>
               </li>
             </ul>

@@ -8,7 +8,7 @@ import ConfirmModal from '@/components/admin/ConfirmModal';
 import styles from './page.module.css';
 
 const CATEGORIES: ProductCategory[] = ['perros', 'cachorros', 'gatos', 'gatitos', 'granos', 'accesorios'];
-const EMPTY: Partial<Product> = { nombre: '', categoria: 'perros', subcategoria: 'alimentos', kg: '', precio: 0, precio_costo: null, stock: 100, activo: true, supplier_id: null, proteina: '', kg_regalo: '', descuento: null, promo_label: '' };
+const EMPTY: Partial<Product> = { nombre: '', categoria: 'perros', subcategoria: 'alimentos', kg: '', precio: 0, precio_costo: null, precio_local: null, stock: 100, activo: true, supplier_id: null, proteina: '', kg_regalo: '', descuento: null, promo_label: '' };
 
 interface Supplier { id: string; nombre: string; }
 const PAGE_SIZE = 20;
@@ -22,6 +22,7 @@ export default function ProductosAdmin() {
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [page, setPage] = useState(1);
@@ -39,17 +40,23 @@ export default function ProductosAdmin() {
     const params = new URLSearchParams({ limit: '1000', activo: 'all' });
     if (catFilter) params.set('categoria', catFilter);
     if (search) params.set('q', search);
-    const [prodRes, suppRes] = await Promise.all([
-      fetch(`/api/products?${params}`),
-      fetch('/api/admin/suppliers?simple=1'),
-    ]);
-    if (prodRes.ok) setProducts(await prodRes.json());
-    if (suppRes.ok) {
-      const suppData = await suppRes.json();
-      setSuppliers(Array.isArray(suppData) ? suppData : (suppData.data ?? []));
-    }
+    const res = await fetch(`/api/products?${params}`);
+    if (res.ok) setProducts(await res.json());
     setLoading(false);
   }, [search, catFilter]);
+
+  // Fetch suppliers once on mount (they rarely change)
+  useEffect(() => {
+    fetch('/api/admin/suppliers?simple=1')
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => setSuppliers(Array.isArray(data) ? data : (data.data ?? [])));
+  }, []);
+
+  // Debounce search: wait 400 ms after the user stops typing before triggering load
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput), 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -120,8 +127,8 @@ export default function ProductosAdmin() {
         <input
           type="search"
           placeholder="Buscar..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           className={styles.searchInput}
         />
         <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className={styles.filterSelect}>
@@ -141,7 +148,8 @@ export default function ProductosAdmin() {
                 <th className={styles.colHideSm}>Categoría</th>
                 <th className={styles.colHideMd}>Proveedor</th>
                 <th>Kg</th>
-                <th>Precio venta</th>
+                <th>Precio web</th>
+                <th className={styles.colHideMd}>Precio local</th>
                 <th>Oferta</th>
                 <th className={styles.colHideMd}>Precio costo</th>
                 <th className={styles.colHideMd}>Proteína</th>
@@ -161,6 +169,7 @@ export default function ProductosAdmin() {
                   </td>
                   <td>{p.kg ?? '—'}</td>
                   <td>{fmt(p.precio)}</td>
+                  <td className={styles.colHideMd} style={{ fontSize: '0.82rem' }}>{fmt(p.precio_local ?? null)}</td>
                   <td>
                     {p.promo_label
                       ? <span style={{ background: 'var(--accent)', color: '#fff', borderRadius: '99px', padding: '0.15rem 0.55rem', fontSize: '0.72rem', fontWeight: 700 }}>{p.promo_label}</span>
@@ -250,8 +259,12 @@ export default function ProductosAdmin() {
                   <input value={modal.data.kg ?? ''} onChange={(e) => set('kg', e.target.value)} />
                 </div>
                 <div className="form-group">
-                  <label>Precio ($)</label>
+                  <label>Precio web ($)</label>
                   <input type="number" min={0} value={modal.data.precio ?? ''} onChange={(e) => set('precio', parseFloat(e.target.value) || null)} onWheel={(e) => e.currentTarget.blur()} onFocus={(e) => e.target.select()} />
+                </div>
+                <div className="form-group">
+                  <label>Precio local ($) <span style={{fontWeight:400,color:'var(--gray)',fontSize:'0.78rem'}}>(venta en local, sin impuestos web)</span></label>
+                  <input type="number" min={0} value={modal.data.precio_local ?? ''} onChange={(e) => set('precio_local', parseFloat(e.target.value) || null)} onWheel={(e) => e.currentTarget.blur()} onFocus={(e) => e.target.select()} placeholder="Dejar vacío si igual al precio web" />
                 </div>
                 <div className="form-group">
                   <label>Precio costo ($)</label>

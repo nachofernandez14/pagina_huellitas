@@ -33,30 +33,38 @@
 
 .discountBadge {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  z-index: 1;
-  background: var(--accent);
-  color: var(--white);
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.2rem 0.5rem;
-  border-radius: 99px;
+  top: 22px;
+  right: -34px;
+  z-index: 2;
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.48rem 2.8rem;
+  transform: rotate(45deg);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 3px 12px rgba(239, 68, 68, 0.45);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
 .promoBadge {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  z-index: 1;
-  background: #e53935;
+  top: 22px;
+  right: -34px;
+  z-index: 2;
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
   color: #fff;
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   font-weight: 800;
-  padding: 0.2rem 0.55rem;
-  border-radius: 99px;
+  padding: 0.48rem 2.8rem;
+  transform: rotate(45deg);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  white-space: nowrap;
+  box-shadow: 0 3px 12px rgba(220, 38, 38, 0.45);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
 .giftBanner {

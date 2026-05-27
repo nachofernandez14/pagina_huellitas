@@ -13,6 +13,7 @@ function LoginForm() {
   const [error, setError] = useState('');
   const searchParams = useSearchParams();
   const resetOk = searchParams.get('resetOk') === '1';
+  const confirmed = searchParams.get('confirmed') === '1';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +51,11 @@ function LoginForm() {
           ¿No tenés cuenta? <Link href="/registro" className="text-green">Registrarse</Link>
         </p>
 
+        {confirmed && (
+          <div className={styles.success}>
+            ¡Cuenta confirmada! Ya podés ingresar.
+          </div>
+        )}
         {resetOk && (
           <div className={styles.success}>
             Contraseña actualizada correctamente. Ya podés iniciar sesión.

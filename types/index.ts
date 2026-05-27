@@ -19,6 +19,7 @@ export interface Product {
   activo: boolean;
   supplier_id?: string | null;
   precio_costo?: number | null;
+  precio_local?: number | null;
   proteina?: string | null;
   kg_regalo?: string | null;
   created_at: string;
@@ -33,6 +34,7 @@ export interface CartItem {
   kg?: string;
   imagen?: string;
   quantity: number;
+  promo_label?: string | null;
 }
 
 export interface Order {

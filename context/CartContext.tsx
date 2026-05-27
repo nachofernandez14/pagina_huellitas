@@ -9,6 +9,30 @@ import React, {
 } from 'react';
 import type { CartContextValue, CartItem, Product } from '@/types';
 
+/**
+ * Parses an "NxM" promo label (e.g. "5x4", "3x2") and returns the
+ * correct subtotal for a given quantity: groups of N are charged as M.
+ */
+export function calcItemSubtotal(
+  precio: number,
+  quantity: number,
+  promo_label?: string | null,
+): number {
+  if (promo_label) {
+    const m = promo_label.match(/^(\d+)[xX](\d+)$/);
+    if (m) {
+      const buy = parseInt(m[1], 10);
+      const pay = parseInt(m[2], 10);
+      if (pay < buy && buy > 0) {
+        const groups = Math.floor(quantity / buy);
+        const remainder = quantity % buy;
+        return (groups * pay + remainder) * precio;
+      }
+    }
+  }
+  return precio * quantity;
+}
+
 // ── State & Reducer ───────────────────────────────────────────
 
 interface CartState {
@@ -41,6 +65,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         kg: action.product.kg,
         imagen: action.product.imagen,
         quantity: 1,
+        promo_label: action.product.promo_label,
       };
       return { items: [...state.items, newItem] };
     }
@@ -106,7 +131,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const clearCart = useCallback(() => dispatch({ type: 'CLEAR' }), []);
 
   const total = state.items.reduce(
-    (sum, i) => sum + i.precio * i.quantity,
+    (sum, i) => sum + calcItemSubtotal(i.precio, i.quantity, i.promo_label),
     0
   );
   const itemCount = state.items.reduce((sum, i) => sum + i.quantity, 0);

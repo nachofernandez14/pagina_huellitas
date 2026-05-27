@@ -234,3 +234,72 @@ export async function sendOrderStatusEmail(params: {
   });
 }
 
+// ─── Email: confirmación de cuenta al registrarse ─────────────────────────
+
+export async function sendConfirmationEmail(to: string, nombre: string, confirmationUrl: string) {
+  const body = `
+    <h1 style="margin:0 0 12px;font-size:22px;color:#1a1a1a;font-weight:700;">Confirmá tu cuenta 🐾</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#444;line-height:1.6;">
+      Hola <strong>${nombre}</strong>, gracias por registrarte en <strong>Huellitas Petshop</strong>.<br>
+      Hacé clic en el botón para activar tu cuenta y empezar a comprar.
+    </p>
+    <table cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+      <tr>
+        <td style="background:#18D860;border-radius:8px;">
+          <a href="${confirmationUrl}"
+             style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">
+            Confirmar mi cuenta
+          </a>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0 0 8px;font-size:13px;color:#888;line-height:1.5;">
+      Si el botón no funciona, copiá y pegá este enlace en tu navegador:
+    </p>
+    <p style="margin:0 0 20px;font-size:12px;color:#18D860;word-break:break-all;">${confirmationUrl}</p>
+    <p style="margin:0;font-size:13px;color:#aaa;">
+      Si no creaste esta cuenta, podés ignorar este email.
+    </p>
+  `;
+
+  await transporter.sendMail({
+    from: `"Huellitas Petshop" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: 'Confirmá tu cuenta — Huellitas Petshop',
+    html: emailLayout('Confirmá tu cuenta', body),
+    text: `Hola ${nombre}!\n\nConfirmá tu cuenta en Huellitas Petshop haciendo clic en este link:\n${confirmationUrl}\n\nSi no creaste esta cuenta, ignorá este email.`,
+  });
+}
+
+// ─── Email: bienvenida al registrarse ──────────────────────────────────────
+
+export async function sendWelcomeEmail(to: string, nombre: string) {
+  const body = `
+    <h1 style="margin:0 0 12px;font-size:22px;color:#1a1a1a;font-weight:700;">¡Bienvenido/a, ${nombre}! 🎉</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#444;line-height:1.6;">
+      Tu cuenta en <strong>Huellitas Petshop</strong> ya está lista. Ahora podés explorar nuestros productos, hacer pedidos y gestionar todo desde tu perfil.
+    </p>
+    <table cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+      <tr>
+        <td style="background:#18D860;border-radius:8px;">
+          <a href="${process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'}/productos"
+             style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">
+            Ver productos
+          </a>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0;font-size:13px;color:#888;line-height:1.5;">
+      Si tenés alguna consulta, podés escribirnos por WhatsApp o responder este email.
+    </p>
+  `;
+
+  await transporter.sendMail({
+    from: `"Huellitas Petshop" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: '¡Bienvenido/a a Huellitas Petshop!',
+    html: emailLayout('Bienvenida', body),
+    text: `¡Bienvenido/a ${nombre}!\n\nTu cuenta en Huellitas Petshop ya está lista.\nVisitanos en: ${process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'}/productos`,
+  });
+}
+

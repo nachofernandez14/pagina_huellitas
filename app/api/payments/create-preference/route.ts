@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
     const { updateOrderPayment } = await import('@/lib/orders');
     await updateOrderPayment(order.id, mpId);
 
-    return NextResponse.json({ init_point, orderId: order.id });
+    return NextResponse.json({ init_point, orderId: order.id, preferenceId: mpId });
   } catch (err: unknown) {
     const mpErr = err as { message?: string; code?: string; status?: number };
     console.error('[create-preference] MP error:', JSON.stringify(mpErr, null, 2));

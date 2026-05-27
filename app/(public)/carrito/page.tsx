@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
+import { calcItemSubtotal } from '@/context/CartContext';
 import styles from './page.module.css';
 
 function formatPrice(n: number) {
@@ -51,7 +52,7 @@ export default function CarritoPage() {
               <div key={item.id} className={`card ${styles.item}`}>
                 <div className={styles.imgWrap}>
                   <Image
-                    src={`/images/${item.imagen}`}
+                    src={item.imagen ? (item.imagen.startsWith('http') ? item.imagen : `/images/${item.imagen}`) : '/images/no-image.svg'}
                     alt={item.nombre}
                     fill
                     style={{ objectFit: 'contain' }}
@@ -80,7 +81,16 @@ export default function CarritoPage() {
                   >+</button>
                 </div>
                 <div className={styles.subtotal}>
-                  {formatPrice(item.precio * item.quantity)}
+                  {formatPrice(calcItemSubtotal(item.precio, item.quantity, item.promo_label))}
+                  {(() => {
+                    const savings = item.precio * item.quantity - calcItemSubtotal(item.precio, item.quantity, item.promo_label);
+                    if (savings <= 0) return null;
+                    return (
+                      <span style={{ display: 'block', fontSize: '0.72rem', color: '#2e7d32', fontWeight: 700, marginTop: '0.15rem' }}>
+                        {item.promo_label} · - {formatPrice(savings)}
+                      </span>
+                    );
+                  })()}
                 </div>
                 <button
                   className={styles.removeBtn}

@@ -26,6 +26,7 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   experimental: {
   },
+  cacheComponents: true,
   images: {
     remotePatterns: [
       {

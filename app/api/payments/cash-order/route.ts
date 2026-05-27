@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createOrder } from '@/lib/orders';
+import { sendOrderConfirmationEmail } from '@/lib/email';
 import type { CartItem, GuestCheckoutData } from '@/types';
 
 export async function POST(req: NextRequest) {
@@ -41,6 +42,22 @@ export async function POST(req: NextRequest) {
       profile: profileSnapshot,
       formaPago: 'efectivo',
     });
+
+    // Send confirmation email immediately for cash orders
+    if (order.guest_email) {
+      const entregaInfo = !user ? guest : delivery;
+      sendOrderConfirmationEmail({
+        to: order.guest_email,
+        nombre: order.guest_nombre ?? null,
+        orderId: order.id,
+        items,
+        total,
+        tipoEntrega: entregaInfo?.tipoEntrega ?? null,
+        zona: entregaInfo?.tipoEntrega === 'envio' ? (entregaInfo.zona ?? null) : null,
+        direccion: entregaInfo?.tipoEntrega === 'envio' ? (entregaInfo.direccion ?? null) : null,
+        formaPago: 'efectivo',
+      }).catch(() => {});
+    }
 
     return NextResponse.json({ orderId: order.id });
   } catch (err) {

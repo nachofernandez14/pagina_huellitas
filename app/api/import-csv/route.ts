@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { parseAllProducts } from '@/lib/csv-parser';
+import { revalidateTag } from 'next/cache';
 
 // POST /api/import-csv — admin only, imports products from CSV files
 export async function POST() {
@@ -38,6 +39,7 @@ export async function POST() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    revalidateTag('products', 'max');
     return NextResponse.json({
       message: 'Import successful',
       count: data?.length ?? 0,

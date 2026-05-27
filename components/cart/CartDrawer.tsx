@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
+import { calcItemSubtotal } from '@/context/CartContext';
 import styles from './CartDrawer.module.css';
 
 function formatPrice(n: number): string {
@@ -69,7 +70,7 @@ export default function CartDrawer({ open, onClose }: Props) {
                 <li key={item.id} className={styles.item}>
                   <div className={styles.itemImg}>
                     <Image
-                      src={item.imagen ? `/images/${item.imagen}` : '/images/no-image.svg'}
+                      src={item.imagen ? (item.imagen.startsWith('http') ? item.imagen : `/images/${item.imagen}`) : '/images/no-image.svg'}
                       alt={item.nombre}
                       fill
                       sizes="64px"
@@ -81,9 +82,22 @@ export default function CartDrawer({ open, onClose }: Props) {
                     <p className={styles.itemName}>{item.nombre}</p>
                     {item.kg && <span className={styles.itemKg}>{item.kg}</span>}
                     <div className={styles.itemBottom}>
-                      <p className={styles.itemPrice}>
-                        {formatPrice(item.precio * item.quantity)}
-                      </p>
+                      <div>
+                        <p className={styles.itemPrice}>
+                          {formatPrice(calcItemSubtotal(item.precio, item.quantity, item.promo_label))}
+                        </p>
+                        {(() => {
+                          const original = item.precio * item.quantity;
+                          const discounted = calcItemSubtotal(item.precio, item.quantity, item.promo_label);
+                          const savings = original - discounted;
+                          if (savings <= 0) return null;
+                          return (
+                            <p style={{ fontSize: '0.7rem', color: '#2e7d32', fontWeight: 700, marginTop: '0.1rem' }}>
+                              {item.promo_label} · Ahorrás {formatPrice(savings)}
+                            </p>
+                          );
+                        })()}
+                      </div>
                       <div className={styles.itemControls}>
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity - 1)}

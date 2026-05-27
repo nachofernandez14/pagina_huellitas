@@ -1,22 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { cacheLife, cacheTag } from 'next/cache';
 
-// GET /api/admin/stats — dashboard metrics
-export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const { data: profile } = await supabase
-    .from('profiles').select('rol').eq('id', user.id).single();
-  if (!profile || profile.rol !== 'admin')
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+async function fetchAdminStats(today: string, sevenDaysAgo: string) {
+  'use cache';
+  cacheLife('minutes');
+  cacheTag('admin-stats');
 
   const admin = createAdminClient();
-  const today = new Date().toISOString().split('T')[0];
-
-  const sevenDaysAgo = new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0];
 
   const [todaySales, lowStock, topProducts, weekSales, stockValue, cajaSemana] = await Promise.all([
     // Today's sales by channel
@@ -62,6 +54,26 @@ export async function GET() {
       .gte('fecha', sevenDaysAgo)
       .order('fecha', { ascending: true }),
   ]);
+
+  return { todaySales, lowStock, topProducts, weekSales, stockValue, cajaSemana };
+}
+
+// GET /api/admin/stats — dashboard metrics
+export async function GET() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { data: profile } = await supabase
+    .from('profiles').select('rol').eq('id', user.id).single();
+  if (!profile || profile.rol !== 'admin')
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const today = new Date().toISOString().split('T')[0];
+  const sevenDaysAgo = new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0];
+
+  const { todaySales, lowStock, topProducts, weekSales, stockValue, cajaSemana } =
+    await fetchAdminStats(today, sevenDaysAgo);
 
   // Aggregate today's totals from orders
   const paidOrders = (todaySales.data ?? []).filter(

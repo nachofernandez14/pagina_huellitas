@@ -2,12 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import styles from '../auth.module.css';
 
 export default function RegistroPage() {
-  const router = useRouter();
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,28 +22,20 @@ export default function RegistroPage() {
     }
 
     setLoading(true);
-    const supabase = createClient();
-    const { data, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { nombre } },
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, nombre }),
     });
 
-    if (authError) {
-      setLoading(false);
-      setError(authError.message);
+    const data = await res.json();
+    setLoading(false);
+
+    if (!res.ok) {
+      setError(data.error ?? 'Error al crear la cuenta');
       return;
     }
 
-    // Confirmar email automáticamente via admin API
-    if (data.user) {
-      await fetch('/api/auth/confirm-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    setLoading(false);
     setSuccess(true);
   };
 
@@ -55,15 +44,16 @@ export default function RegistroPage() {
       <div className={styles.page}>
         <div className={`card ${styles.box}`} style={{ textAlign: 'center' }}>
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem' }}>
-            <path d="M20 6L9 17l-5-5"/>
+            <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
           </svg>
-          <h1 className={styles.title}>¡Cuenta creada!</h1>
+          <h1 className={styles.title}>Revisá tu email</h1>
           <p className={styles.subtitle}>
-            Tu cuenta está lista. Podés ingresar ahora.
+            Te mandamos un link de confirmación a <strong>{email}</strong>.<br />
+            Hacé clic en el link para activar tu cuenta.
           </p>
-          <Link href="/login" className="btn btn-primary" style={{ marginTop: '1.5rem' }}>
-            Ir a ingresar
-          </Link>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '1rem' }}>
+            ¿No lo encontrás? Revisá la carpeta de spam.
+          </p>
         </div>
       </div>
     );
