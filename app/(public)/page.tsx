@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
+import { cacheLife, cacheTag } from 'next/cache';
 import { getProducts, getTopOffers } from '@/lib/products';
 import ProductCard from '@/components/products/ProductCard';
 import HeroCarousel from '@/components/ui/HeroCarousel';
@@ -65,6 +66,10 @@ const CATEGORIES = [
 ];
 
 export default async function HomePage() {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('products');
+
   const [featured, offers] = await Promise.all([
     getProducts({ limit: 8 }).catch(() => []),
     getTopOffers(9).catch(() => []),

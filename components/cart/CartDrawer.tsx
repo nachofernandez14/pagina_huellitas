@@ -140,7 +140,7 @@ export default function CartDrawer({ open, onClose }: Props) {
             <Link href="/checkout" className="btn btn-accent w-full" onClick={onClose}>
               Ir a pagar →
             </Link>
-            <Link href="/carrito" className="btn btn-outline w-full" onClick={onClose}>
+            <Link href="/carrito" className="btn btn-outline w-full" onClick={onClose} prefetch={false}>
               Ver carrito completo
             </Link>
           </div>

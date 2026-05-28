@@ -58,6 +58,10 @@
   color: var(--gray);
 }
 
+.itemActions {
+  display: contents; /* transparent on desktop: children participate in parent flex */
+}
+
 .controls {
   display: flex;
   align-items: center;
@@ -112,6 +116,7 @@
 .summary {
   position: sticky;
   top: 80px;
+  padding: 1.25rem;
 }
 
 .summaryTitle {
@@ -141,7 +146,33 @@
   .summary {
     position: static;
   }
-  .subtotal, .controls {
-    display: none;
+  .item {
+    flex-wrap: wrap;
+    padding: 0.75rem;
+    gap: 0.5rem 0.75rem;
+    align-items: flex-start;
+  }
+  .imgWrap {
+    width: 64px;
+    height: 64px;
+  }
+  .info {
+    flex: 1;
+  }
+  .removeBtn {
+    align-self: flex-start;
+    margin-top: 0.1rem;
+  }
+  .itemActions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding-left: calc(64px + 0.75rem);
+    gap: 0.75rem;
+  }
+  .subtotal {
+    min-width: auto;
+    text-align: left;
   }
 }

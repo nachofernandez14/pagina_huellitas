@@ -31,7 +31,7 @@ export async function createMercadoPagoPreference(
   // If a promo discount is applied, use a single consolidated item so the
   // MP total matches the discounted amount exactly (MP doesn't allow negative prices).
   let mpItems: {
-    id?: string; title: string; quantity: number; unit_price: number;
+    id: string; title: string; quantity: number; unit_price: number;
     currency_id: string; picture_url?: string;
   }[];
 
@@ -39,6 +39,7 @@ export async function createMercadoPagoPreference(
     const originalTotal = items.reduce((s, i) => s + Number(i.precio) * i.quantity, 0);
     const finalTotal = Math.max(0, originalTotal - discount);
     mpItems = [{
+      id: '',
       title: 'Compra en Huellitas Petshop',
       quantity: 1,
       unit_price: finalTotal,
@@ -46,7 +47,7 @@ export async function createMercadoPagoPreference(
     }];
   } else {
     mpItems = items.map((item) => ({
-      id: item.id,
+      id: item.id ?? '',
       title: item.nombre,
       quantity: item.quantity,
       unit_price: Number(item.precio),

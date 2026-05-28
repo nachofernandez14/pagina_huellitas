@@ -67,30 +67,32 @@ export default function CarritoPage() {
                   {item.kg && <p className={styles.kg}>{item.kg} kg</p>}
                   <p className={styles.price}>{formatPrice(item.precio)}</p>
                 </div>
-                <div className={styles.controls}>
-                  <button
-                    className={styles.qtyBtn}
-                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                    aria-label="Disminuir"
-                  >−</button>
-                  <span className={styles.qty}>{item.quantity}</span>
-                  <button
-                    className={styles.qtyBtn}
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    aria-label="Aumentar"
-                  >+</button>
-                </div>
-                <div className={styles.subtotal}>
-                  {formatPrice(calcItemSubtotal(item.precio, item.quantity, item.promo_label))}
-                  {(() => {
-                    const savings = item.precio * item.quantity - calcItemSubtotal(item.precio, item.quantity, item.promo_label);
-                    if (savings <= 0) return null;
-                    return (
-                      <span style={{ display: 'block', fontSize: '0.72rem', color: '#2e7d32', fontWeight: 700, marginTop: '0.15rem' }}>
-                        {item.promo_label} · - {formatPrice(savings)}
-                      </span>
-                    );
-                  })()}
+                <div className={styles.itemActions}>
+                  <div className={styles.controls}>
+                    <button
+                      className={styles.qtyBtn}
+                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                      aria-label="Disminuir"
+                    >−</button>
+                    <span className={styles.qty}>{item.quantity}</span>
+                    <button
+                      className={styles.qtyBtn}
+                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      aria-label="Aumentar"
+                    >+</button>
+                  </div>
+                  <div className={styles.subtotal}>
+                    {formatPrice(calcItemSubtotal(item.precio, item.quantity, item.promo_label))}
+                    {(() => {
+                      const savings = item.precio * item.quantity - calcItemSubtotal(item.precio, item.quantity, item.promo_label);
+                      if (savings <= 0) return null;
+                      return (
+                        <span style={{ display: 'block', fontSize: '0.72rem', color: '#2e7d32', fontWeight: 700, marginTop: '0.15rem' }}>
+                          {item.promo_label} · - {formatPrice(savings)}
+                        </span>
+                      );
+                    })()}
+                  </div>
                 </div>
                 <button
                   className={styles.removeBtn}

@@ -33,6 +33,13 @@ export default function EnviosPage() {
           Por el momento realizamos envíos dentro de <strong>Mendoza Capital y Gran Mendoza</strong>.
           Si tu dirección está fuera de esta zona, contactanos por WhatsApp para evaluar opciones.
         </p>
+        <p>
+          Para localidades cercanas o zonas limítrofes, los envíos están sujetos a evaluación
+          previa por parte del equipo de Huellitas Petshop. Nos reservamos el derecho de
+          confirmar o no el envío según la distancia, disponibilidad y condiciones del momento.
+          En caso de no poder concretar el envío, te avisaremos a la brevedad para coordinar
+          una alternativa (retiro en local u otro arreglo conveniente para ambas partes).
+        </p>
 
         <h2>2. Métodos de entrega</h2>
 

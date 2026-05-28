@@ -5,34 +5,35 @@ import Image from 'next/image';
 import Link from 'next/link';
 import styles from './HeroCarousel.module.css';
 
-const SLIDES = [
+interface Slide {
+  src: string;
+  alt: string;
+  title: string;
+  subtitle: string;
+  cta: { label: string; href: string; external?: boolean };
+}
+
+const SLIDES: Slide[] = [
   {
-    src: '/images/afuera.jpeg',
+    src: '/images/c1.png',
     alt: 'Huellitas Petshop',
     title: 'Bienvenidos a Huellitas',
     subtitle: 'Todo para tu mascota en un solo lugar',
     cta: { label: 'Ver productos', href: '/productos' },
   },
   {
-    src: '/images/adentro.jpeg',
+    src: '/images/c3.png',
     alt: 'Huellitas Petshop interior',
     title: 'Alimentos premium',
     subtitle: 'Las mejores marcas al mejor precio',
     cta: { label: 'Ver alimentos', href: '/productos?categoria=perros' },
   },
   {
-    src: '/images/collares.jpeg',
+    src: '/images/c2.png',
     alt: 'Accesorios Huellitas',
     title: 'Accesorios y más',
     subtitle: 'Todo lo que tu mascota necesita',
     cta: { label: 'Ver accesorios', href: '/productos?categoria=accesorios' },
-  },
-  {
-    src: '/images/golosinas.jpeg',
-    alt: 'Huellitas desde afuera',
-    title: 'Encontranos en Mendoza',
-    subtitle: 'Visitanos o comprá online',
-    cta: { label: 'Ver ubicación', href: 'https://maps.app.goo.gl/CBno9HJUc3WoWXFz5?g_st=iw', external: true },
   },
 ];
 

@@ -22,8 +22,8 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
   },
   icons: {
-    icon: '/images/logo_huellitas.png',
-    apple: '/images/logo_huellitas.png',
+    icon: '/images/favicon.png',
+    apple: '/images/favicon.png',
   },
   openGraph: {
     title: 'Huellitas Petshop | Todo para tu mascota en Mendoza',
