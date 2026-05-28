@@ -25,11 +25,13 @@ export async function POST(req: NextRequest) {
     total,
     guest,
     delivery,
+    promoCode,
   }: {
     items: CartItem[];
     total: number;
     guest?: GuestCheckoutData;
     delivery?: { tipoEntrega: 'retiro' | 'envio'; zona?: string; direccion?: string };
+    promoCode?: string;
   } = body;
 
   // Validate input
@@ -103,6 +105,30 @@ export async function POST(req: NextRequest) {
     const verifiedTotal = verifiedItems.reduce((sum, i) => sum + i.precio * i.quantity, 0);
     // ────────────────────────────────────────────────────────────────────────
 
+    // ── Validate promo code server-side ─────────────────────────────────────
+    let promoDiscount = 0;
+    let validatedPromoCode: string | undefined;
+    if (promoCode?.trim() && user) {
+      // Only logged-in users can have promo codes (guests can't request them)
+      const { data: promoData } = await supabase
+        .from('promo_codes')
+        .select('code, discount, min_order, used, email')
+        .eq('code', promoCode.trim().toUpperCase())
+        .eq('used', false)
+        .maybeSingle();
+      // Ownership check: code must belong to the authenticated user
+      if (
+        promoData &&
+        promoData.email.toLowerCase() === user.email!.toLowerCase() &&
+        verifiedTotal >= promoData.min_order
+      ) {
+        promoDiscount = promoData.discount;
+        validatedPromoCode = promoData.code;
+      }
+    }
+    const finalTotal = Math.max(0, verifiedTotal - promoDiscount);
+    // ────────────────────────────────────────────────────────────────────────
+
     // Para usuarios autenticados, buscar datos del perfil para guardar en el pedido
     let profile: { nombre?: string | null; email?: string | null; telefono?: string | null } | undefined;
     if (user && !guest) {
@@ -119,11 +145,13 @@ export async function POST(req: NextRequest) {
     // Create order in DB
     const order = await createOrder({
       items: verifiedItems,
-      total: verifiedTotal,
+      total: finalTotal,
       userId: user?.id,
       guest: guest,
       delivery: !guest ? delivery : undefined,
       profile,
+      promoCode: validatedPromoCode,
+      promoDescuento: promoDiscount > 0 ? promoDiscount : undefined,
     });
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
@@ -133,6 +161,7 @@ export async function POST(req: NextRequest) {
       items: verifiedItems,
       orderId: order.id,
       siteUrl,
+      discount: promoDiscount > 0 ? promoDiscount : undefined,
     });
 
     // Save preference ID to order

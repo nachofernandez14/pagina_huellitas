@@ -10,8 +10,10 @@ export async function createOrder(params: {
   delivery?: { tipoEntrega: 'retiro' | 'envio'; zona?: string; direccion?: string };
   profile?: { nombre?: string | null; email?: string | null; telefono?: string | null };
   formaPago?: string;
+  promoCode?: string;
+  promoDescuento?: number;
 }): Promise<Order> {
-  const { items, total, userId, guest, delivery, profile, formaPago } = params;
+  const { items, total, userId, guest, delivery, profile, formaPago, promoCode, promoDescuento } = params;
   const supabase = createAdminClient();
 
   const payload: Record<string, unknown> = {
@@ -21,6 +23,8 @@ export async function createOrder(params: {
   };
 
   if (formaPago) payload.forma_pago = formaPago;
+  if (promoCode) payload.promo_code = promoCode;
+  if (promoDescuento) payload.promo_descuento = promoDescuento;
 
   if (userId) {
     payload.user_id = userId;
@@ -88,6 +92,11 @@ export async function markOrderPaid(
 
   if (error) throw new Error(error.message);
 
+  // Mark promo code as used if the order had one
+  if (order?.promo_code) {
+    markPromoCodeUsed(order.promo_code, orderId).catch(() => {});
+  }
+
   // Send confirmation email now that payment is confirmed
   if (order?.guest_email) {
     const o = order as Order;
@@ -103,6 +112,15 @@ export async function markOrderPaid(
       formaPago: o.forma_pago ?? formaPago ?? null,
     }).catch(() => { /* silent — never block the payment confirmation */ });
   }
+}
+
+export async function markPromoCodeUsed(code: string, orderId: string): Promise<void> {
+  const supabase = createAdminClient();
+  await supabase
+    .from('promo_codes')
+    .update({ used: true, used_at: new Date().toISOString(), used_in_order_id: orderId })
+    .eq('code', code)
+    .eq('used', false);
 }
 
 /** Cancels a pending order — idempotent, no-op if already paid/cancelled */

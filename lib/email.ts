@@ -57,6 +57,35 @@ const ESTADO_LABELS: Record<string, string> = {
 export const ESTADOS_CON_EMAIL = new Set(['paid', 'preparing', 'ready', 'shipped', 'delivered', 'cancelled']);
 
 
+export async function sendPromoCodeEmail(to: string, code: string) {
+  const body = `
+    <h1 style="margin:0 0 8px;font-size:22px;color:#1a1a1a;font-weight:700;">🎁 ¡Tu cupón de descuento!</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#555;">Gracias por registrarte en Huellitas Petshop. Acá está tu cupón exclusivo:</p>
+    <div style="background:#f0fdf4;border:2px dashed #2d6a4f;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
+      <p style="margin:0 0 6px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;">Tu código de descuento</p>
+      <p style="margin:0;font-size:32px;font-weight:900;color:#2d6a4f;letter-spacing:4px;">${code}</p>
+    </div>
+    <div style="background:#fffbeb;border-radius:8px;padding:14px 18px;margin-bottom:20px;">
+      <p style="margin:0 0 6px;font-size:14px;color:#92400e;font-weight:700;">📋 Condiciones:</p>
+      <p style="margin:0;font-size:13px;color:#78350f;line-height:1.6;">
+        • Descuento de <strong>$5.000</strong> en tu compra<br>
+        • Válido en compras mayores a <strong>$80.000</strong><br>
+        • Uso único — solo podés usarlo una vez<br>
+        • Ingresá el código al finalizar tu compra
+      </p>
+    </div>
+    <p style="margin:0;font-size:13px;color:#888;">¿Dudas? Escribinos por WhatsApp y te ayudamos.</p>
+  `;
+
+  await transporter.sendMail({
+    from: `"Huellitas Petshop" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: '🎁 Tu cupón de $5.000 OFF — Huellitas Petshop',
+    html: emailLayout('Tu cupón de descuento', body),
+    text: `Tu cupón de descuento — Huellitas Petshop\n\nCódigo: ${code}\n\n$5.000 de descuento en compras mayores a $80.000. Uso único.\n\nIngresá el código al finalizar tu compra en huellitaspetshop.com.ar`,
+  });
+}
+
 export async function sendPasswordResetEmail(to: string, resetLink: string) {
   await transporter.sendMail({
     from: `"Huellitas Petshop" <${process.env.GMAIL_USER}>`,

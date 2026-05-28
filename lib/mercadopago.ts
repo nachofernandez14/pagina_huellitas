@@ -14,32 +14,48 @@ export interface CreatePreferenceInput {
   items: CartItem[];
   orderId: string;
   siteUrl: string;
+  discount?: number;
 }
 
 export async function createMercadoPagoPreference(
   input: CreatePreferenceInput
 ): Promise<{ id: string; init_point: string }> {
-  const { items, orderId, siteUrl } = input;
-
+  const { items, orderId, siteUrl, discount } = input;
   const token = await getMPAccessToken();
   const client = new MercadoPagoConfig({ accessToken: token });
   const preference = new Preference(client);
 
-  // En entornos de prueba (token TEST-...) usar sandbox_init_point
-  // para evitar errores de CSP y el botón de pago deshabilitado
   const isSandbox = token.startsWith('TEST-');
   const isLocalhost = siteUrl.includes('localhost') || siteUrl.includes('127.0.0.1');
 
-  const mpItems = items.map((item) => ({
-    id: item.id,
-    title: item.nombre,
-    quantity: item.quantity,
-    unit_price: Number(item.precio),
-    currency_id: 'ARS',
-    ...(item.imagen && !isLocalhost
-      ? { picture_url: item.imagen.startsWith('http') ? item.imagen : `${siteUrl}/images/${item.imagen}` }
-      : {}),
-  }));
+  // If a promo discount is applied, use a single consolidated item so the
+  // MP total matches the discounted amount exactly (MP doesn't allow negative prices).
+  let mpItems: {
+    id?: string; title: string; quantity: number; unit_price: number;
+    currency_id: string; picture_url?: string;
+  }[];
+
+  if (discount && discount > 0) {
+    const originalTotal = items.reduce((s, i) => s + Number(i.precio) * i.quantity, 0);
+    const finalTotal = Math.max(0, originalTotal - discount);
+    mpItems = [{
+      title: 'Compra en Huellitas Petshop',
+      quantity: 1,
+      unit_price: finalTotal,
+      currency_id: 'ARS',
+    }];
+  } else {
+    mpItems = items.map((item) => ({
+      id: item.id,
+      title: item.nombre,
+      quantity: item.quantity,
+      unit_price: Number(item.precio),
+      currency_id: 'ARS',
+      ...(item.imagen && !isLocalhost
+        ? { picture_url: item.imagen.startsWith('http') ? item.imagen : `${siteUrl}/images/${item.imagen}` }
+        : {}),
+    }));
+  }
 
   const result = await preference.create({
     body: {

@@ -88,6 +88,37 @@ export default function CheckoutPage() {
   const [direccion, setDireccion] = useState('');
   const [metodoPago, setMetodoPago] = useState<'mp' | 'efectivo' | ''>('');
 
+  // Promo code
+  const [promoInput, setPromoInput] = useState('');
+  const [promoApplied, setPromoApplied] = useState<{ code: string; discount: number } | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState('');
+
+  const handleApplyPromo = async () => {
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return;
+    setPromoLoading(true);
+    setPromoError('');
+    try {
+      const res = await fetch('/api/promo/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, total }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setPromoApplied({ code: data.code, discount: data.discount });
+        setPromoInput('');
+      } else {
+        setPromoError(data.message ?? 'Código inválido');
+      }
+    } catch {
+      setPromoError('Error al validar el código');
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -200,7 +231,7 @@ export default function CheckoutPage() {
       const res = await fetch('/api/payments/create-preference', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, total, guest: guestData, delivery }),
+        body: JSON.stringify({ items, total, guest: guestData, delivery, promoCode: promoApplied?.code }),
       });
 
       if (!res.ok) {
@@ -224,7 +255,7 @@ export default function CheckoutPage() {
       const res = await fetch('/api/payments/cash-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, total, guest: guestData, delivery }),
+        body: JSON.stringify({ items, total, guest: guestData, delivery, promoCode: promoApplied?.code }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -704,8 +735,54 @@ export default function CheckoutPage() {
               </ul>
 
               <div className={styles.summaryTotal}>
+                <span>Subtotal</span>
+                <strong style={{ color: 'var(--dark)' }}>{formatPrice(total)}</strong>
+              </div>
+
+              {/* ── Promo code ── */}
+              {!promoApplied ? (
+                <div className={styles.promoSection}>
+                  <div className={styles.promoRow}>
+                    <input
+                      className={styles.promoInput}
+                      type="text"
+                      placeholder="Código de descuento"
+                      value={promoInput}
+                      onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleApplyPromo())}
+                      maxLength={20}
+                    />
+                    <button
+                      type="button"
+                      className={styles.promoBtn}
+                      onClick={handleApplyPromo}
+                      disabled={promoLoading || !promoInput.trim()}
+                    >
+                      {promoLoading ? '...' : 'Aplicar'}
+                    </button>
+                  </div>
+                  {promoError && <p className={styles.promoError}>{promoError}</p>}
+                </div>
+              ) : (
+                <div className={styles.promoApplied}>
+                  <span className={styles.promoAppliedLabel}>
+                    🎉 Cupón <strong>{promoApplied.code}</strong> aplicado
+                  </span>
+                  <span className={styles.promoAppliedDiscount}>−{formatPrice(promoApplied.discount)}</span>
+                  <button
+                    type="button"
+                    className={styles.promoRemove}
+                    onClick={() => setPromoApplied(null)}
+                    aria-label="Quitar cupón"
+                  >✕</button>
+                </div>
+              )}
+
+              <div className={styles.summaryTotal} style={{ borderTop: promoApplied ? '2px solid var(--green-dark)' : undefined, paddingTop: promoApplied ? '0.75rem' : undefined }}>
                 <span>Total</span>
-                <strong className={styles.totalAmount}>{formatPrice(total)}</strong>
+                <strong className={styles.totalAmount}>
+                  {formatPrice(promoApplied ? Math.max(0, total - promoApplied.discount) : total)}
+                </strong>
               </div>
 
               <p className={styles.mpNote}>

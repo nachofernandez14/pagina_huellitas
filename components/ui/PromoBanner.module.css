@@ -84,6 +84,17 @@
   cursor: not-allowed;
 }
 
+.ctaLink {
+  color: #FBBF24;
+  font-weight: 700;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.ctaLink:hover {
+  color: #fde68a;
+}
+
 .successMsg {
   color: #fff;
   font-family: var(--font-body);

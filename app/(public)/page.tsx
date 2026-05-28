@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   },
 };
 
-const SHOW_PROMO_BANNER = false;
+const SHOW_PROMO_BANNER = true;
 
 const JSONLD_LOCAL_BUSINESS = {
   '@context': 'https://schema.org',
