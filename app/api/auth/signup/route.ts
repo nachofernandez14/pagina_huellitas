@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
 
   // Generar el link de confirmación sin que Supabase envíe nada
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-    type: 'signup',
+    type: 'magiclink',
     email: normalizedEmail,
     options: { redirectTo: `${siteUrl}/login?confirmed=1` },
   });

@@ -11,7 +11,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <Navbar />
       </Suspense>
       <main className={styles.main}>
-        {children}
+        <Suspense fallback={null}>
+          {children}
+        </Suspense>
       </main>
       <Suspense fallback={null}>
         <Footer />
