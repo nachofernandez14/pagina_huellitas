@@ -1,0 +1,278 @@
+/* ── Product Detail ──────────────────────────────────────── */
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--gray);
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+.breadcrumb a {
+  color: var(--green-dark);
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+.breadcrumb a:hover { opacity: 0.75; }
+.breadcrumb span { color: var(--gray); }
+
+/* ── Layout ─────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+}
+
+/* ── Image panel ─────────────────────────────────────────── */
+.imgPanel {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--white);
+  box-shadow: var(--shadow);
+  aspect-ratio: 1 / 1;
+}
+
+.img {
+  object-fit: contain;
+  padding: 1.5rem;
+}
+
+.discountBadge {
+  position: absolute;
+  top: 22px;
+  right: -34px;
+  z-index: 2;
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 0.5rem 3rem;
+  transform: rotate(45deg);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 3px 12px rgba(239, 68, 68, 0.45);
+}
+
+.promoBadge {
+  position: absolute;
+  top: 22px;
+  right: -34px;
+  z-index: 2;
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.5rem 3rem;
+  transform: rotate(45deg);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 3px 12px rgba(220, 38, 38, 0.45);
+}
+
+.giftBanner {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  background: linear-gradient(135deg, #01a229 0%, #017a1f 100%);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+/* ── Info panel ──────────────────────────────────────────── */
+.infoPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.category {
+  text-transform: capitalize;
+}
+
+.nombre {
+  font-family: var(--font-title);
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  color: var(--dark);
+  line-height: 1.2;
+}
+
+/* ── Price ───────────────────────────────────────────────── */
+.priceBlock {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.priceOriginal {
+  font-size: 1rem;
+  color: var(--gray);
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
+.price {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--green-dark);
+  font-family: var(--font-title);
+}
+
+.noPrice {
+  font-size: 1.1rem;
+  color: var(--gray);
+  font-style: italic;
+}
+
+/* ── Variants ────────────────────────────────────────────── */
+.variantsLabel {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--gray);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.5rem;
+}
+
+.variants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.variantChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.9rem;
+  border-radius: 99px;
+  border: 2px solid var(--gray-light);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dark);
+  background: var(--white);
+  cursor: pointer;
+  text-decoration: none;
+  transition: var(--transition);
+}
+.variantChip:hover {
+  border-color: var(--green-dark);
+  color: var(--green-dark);
+}
+.variantChipActive {
+  border-color: var(--green-dark);
+  background: var(--green-dark);
+  color: var(--white);
+}
+
+/* ── Details list ────────────────────────────────────────── */
+.detailsList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.88rem;
+  gap: 0.5rem;
+}
+
+.detailKey {
+  color: var(--gray);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.detailVal {
+  color: var(--dark);
+  font-weight: 600;
+  text-align: right;
+}
+
+/* ── Stock ───────────────────────────────────────────────── */
+.stockOk {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--green-dark);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.stockLow {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.stockOut {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--error);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* ── CTA ─────────────────────────────────────────────────── */
+.ctaRow {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.addBtn {
+  flex: 1;
+  min-width: 160px;
+  font-size: 1rem;
+  padding: 0.8rem 1.5rem;
+}
+
+.backBtn {
+  font-size: 0.88rem;
+}
+
+/* ── Separator ───────────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: var(--gray-light);
+}
+
+/* ── Related ─────────────────────────────────────────────── */
+.relatedTitle {
+  font-size: 1.4rem;
+  color: var(--green-dark);
+  margin-bottom: 1.5rem;
+}

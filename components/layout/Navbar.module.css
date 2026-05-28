@@ -63,6 +63,7 @@
   width: 100%;
   max-width: 600px;
   justify-self: center;
+  min-width: 0;
 }
 
 .searchForm {
@@ -76,6 +77,7 @@
 
 .searchInput {
   flex: 1;
+  min-width: 0;
   border: none;
   outline: none;
   padding: 0.6rem 1.1rem;
@@ -83,6 +85,7 @@
   font-family: var(--font-body);
   background: transparent;
   color: var(--dark);
+  -webkit-appearance: none;
 }
 
 .searchInput::placeholder { color: #aaa; }
