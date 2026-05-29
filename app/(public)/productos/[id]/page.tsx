@@ -2,8 +2,9 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { getProductById, getProductSiblings } from '@/lib/products';
+import { getProductById, getProductSiblings, getProducts } from '@/lib/products';
 import AddToCartButton from './AddToCartButton';
+import ProductCard from '@/components/products/ProductCard';
 import styles from './page.module.css';
 
 interface Props {
@@ -56,12 +57,25 @@ export default async function ProductDetailPage({ params }: Props) {
   );
   const hasVariants = allVariants.length > 1;
 
+  const related = (await getProducts({ categoria: product.categoria, limit: 8 }))
+    .filter((p) => p.nombre !== product.nombre)
+    .slice(0, 4);
+
   const hasDiscount =
     product.descuento != null &&
     product.descuento > 0 &&
     product.descuento < (product.precio ?? Infinity);
 
   const displayPrice = hasDiscount ? product.descuento! : product.precio;
+
+  const categoryLabel: Record<string, string> = {
+    perros: 'Perro adulto',
+    cachorros: 'Perro cachorro',
+    gatos: 'Gato adulto',
+    gatitos: 'Gato cachorro',
+    granos: 'Granos',
+    accesorios: 'Accesorio',
+  };
 
   const imageSrc = product.imagen
     ? product.imagen.startsWith('http')
@@ -115,11 +129,10 @@ export default async function ProductDetailPage({ params }: Props) {
 
           {/* ── Info ── */}
           <div className={styles.infoPanel}>
-            <span className={`badge badge-green ${styles.category}`}>
-              {product.categoria}
-            </span>
-
             <h1 className={styles.nombre}>{product.nombre}</h1>
+            {categoryLabel[product.categoria] && (
+              <span className={styles.catLabel}>{categoryLabel[product.categoria]}</span>
+            )}
 
             {/* Price */}
             <div className={styles.priceBlock}>
@@ -152,41 +165,37 @@ export default async function ProductDetailPage({ params }: Props) {
             )}
 
             {/* Details */}
-            <ul className={styles.detailsList}>
-              {product.kg && (
-                <li className={styles.detailRow}>
-                  <span className={styles.detailKey}>Presentación</span>
-                  <span className={styles.detailVal}>{product.kg}</span>
-                </li>
-              )}
-              {product.proteina && (
-                <li className={styles.detailRow}>
-                  <span className={styles.detailKey}>Proteína</span>
-                  <span className={styles.detailVal}>{product.proteina}</span>
-                </li>
-              )}
-              {product.subcategoria && (
-                <li className={styles.detailRow}>
-                  <span className={styles.detailKey}>Subcategoría</span>
-                  <span className={styles.detailVal}>{product.subcategoria}</span>
-                </li>
-              )}
-            </ul>
+            {(product.kg || product.proteina) && (
+              <ul className={styles.detailsList}>
+                {product.kg && (
+                  <li className={styles.detailRow}>
+                    <span className={styles.detailKey}>Presentación</span>
+                    <span className={styles.detailVal}>{product.kg}</span>
+                  </li>
+                )}
+                {product.proteina && (
+                  <li className={styles.detailRow}>
+                    <span className={styles.detailKey}>Proteína</span>
+                    <span className={`${styles.detailVal} ${styles.detailValProtein}`}>{product.proteina}</span>
+                  </li>
+                )}
+              </ul>
+            )}
 
             {/* Stock */}
-            {product.stock > 5 ? (
+            {product.stock > 10 ? (
               <p className={styles.stockOk}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                Stock disponible
+                +10 unidades disponibles
               </p>
             ) : product.stock > 0 ? (
               <p className={styles.stockLow}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
-                Últimas {product.stock} unidades
+                {product.stock} unidad{product.stock !== 1 ? 'es' : ''} disponible{product.stock !== 1 ? 's' : ''}
               </p>
             ) : (
               <p className={styles.stockOut}>
@@ -197,17 +206,54 @@ export default async function ProductDetailPage({ params }: Props) {
               </p>
             )}
 
-            <div className={styles.divider} />
 
-            {/* CTA */}
-            <div className={styles.ctaRow}>
-              <AddToCartButton product={product} outOfStock={product.stock <= 0} />
-              <Link href="/productos" className={`btn btn-ghost ${styles.backBtn}`}>
-                ← Volver
-              </Link>
-            </div>
           </div>
+
+          {/* ── Sidebar ── */}
+          <aside className={styles.sidebar}>
+            {/* Qty + Add to cart */}
+            <AddToCartButton product={product} outOfStock={product.stock <= 0} />
+
+            <div className={styles.sideDivider} />
+
+            {/* Payment methods */}
+            <p className={styles.payLabel}>Medios de pago</p>
+            <div className={styles.payMethods}>
+              <span className={styles.payBadge}>Tarjeta de crédito</span>
+              <span className={styles.payBadge}>Tarjeta de débito</span>
+              <span className={styles.payBadge}>Billetera virtual</span>
+              <span className={styles.payBadge}>Efectivo</span>
+            </div>
+
+            <div className={styles.sideDivider} />
+
+            {/* Info accordion */}
+            <details className={styles.accordion}>
+              <summary className={styles.accordionHeader}>Devoluciones</summary>
+              <p className={styles.accordionBody}>
+                Aceptamos devoluciones dentro de los 7 días de la compra con el producto en su estado original y con ticket de compra.
+              </p>
+            </details>
+            <details className={styles.accordion}>
+              <summary className={styles.accordionHeader}>Retiro en local</summary>
+              <p className={styles.accordionBody}>
+                Podés retirar tu pedido en nuestro local. Lun–Vie 9–13 y 16:45–20:30 · Sáb 9–13:30 y 17–20:30 · Dom 10–13.
+              </p>
+            </details>
+          </aside>
         </div>
+
+        {/* Related products */}
+        {related.length > 0 && (
+          <section className={styles.relatedSection}>
+            <h2 className={styles.relatedTitle}>Productos relacionados</h2>
+            <div className={styles.relatedGrid}>
+              {related.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
