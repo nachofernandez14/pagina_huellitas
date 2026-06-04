@@ -1,0 +1,36 @@
+.ticker {
+  background: var(--green-dark);
+  color: var(--white);
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0.55rem 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.track {
+  display: inline-flex;
+  animation: scroll 28s linear infinite;
+}
+
+.ticker:hover .track {
+  animation-play-state: paused;
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 2.5rem;
+}
+
+.sep {
+  color: var(--green-light);
+  font-size: 1rem;
+}
+
+@keyframes scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}

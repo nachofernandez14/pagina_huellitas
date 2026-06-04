@@ -1,0 +1,35 @@
+.marcasSection {
+  background: var(--white);
+  padding: 3rem 0 4rem;
+  border-top: 3px solid var(--green-light);
+}
+
+.marcasTitle {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.marcasTrack {
+  display: flex;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.marcaItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 130px;
+  height: 70px;
+  filter: grayscale(100%);
+  opacity: 0.65;
+  transition: filter 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+}
+
+.marcaItem:hover {
+  filter: grayscale(0%);
+  opacity: 1;
+  transform: scale(1.08);
+}
