@@ -22,7 +22,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   return {
     title: 'Catálogo de Productos para Mascotas en Mendoza',
     description:
-      'Explorá alimentos premium, granos al por mayor y accesorios para perros y gatos. Envío a domicilio en Mendoza, Guaymallén y Las Heras. Huellitas Petshop.',
+      'Explorá alimentos premium, granos al por mayor y accesorios para perros y gatos. Envío a domicilio en Mendoza. Huellitas Petshop.',
     alternates: { canonical: '/productos' },
     openGraph: {
       title: 'Productos | Huellitas Petshop Mendoza',

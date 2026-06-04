@@ -46,7 +46,7 @@ const SEO: Record<CategorySlug, CategorySeo> = {
     description:
       'Alimento para cachorros en desarrollo en Mendoza. Fórmulas nutritivas, envío a domicilio y asesoramiento por WhatsApp en Huellitas Petshop.',
     intro:
-      'Elegí el alimento ideal para el crecimiento de tu cachorro en Mendoza. En Huellitas tenés opciones por etapa y tamaño, con marcas de calidad y envíos a domicilio en zonas de cobertura o retiro en el local.',
+      'Elegí el alimento ideal para el crecimiento de tu cachorro en Mendoza. En Huellitas tenés opciones por etapa y tamaño, con marcas de calidad y envíos a domicilio en Mendoza o retiro en el local.',
     keywords: ['alimento cachorros Mendoza', 'comida cachorro', 'petshop cachorros', 'envío mascotas Mendoza'],
   },
   gatos: {

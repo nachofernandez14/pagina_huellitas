@@ -89,7 +89,7 @@ async function ProductosCatalogInner({ categoria, search }: Props) {
               <span aria-current="page">Productos</span>
             )}
           </nav>
-          <h1 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <h1 className={styles.pageTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             {categorySeo ? (
               <>
                 {categorySeo.h1}{' '}
@@ -102,11 +102,11 @@ async function ProductosCatalogInner({ categoria, search }: Props) {
           {categorySeo ? (
             <p className={styles.categoryIntro}>{categorySeo.intro}</p>
           ) : (
-            <p className="section-subtitle">
+            <p className={styles.categoryIntro}>
               Alimentos premium, granos y accesorios con envío en Gran Mendoza
             </p>
           )}
-          <p className="section-subtitle">
+          <p className={styles.productCount}>
             {products.length} producto{products.length !== 1 ? 's' : ''} encontrado
             {products.length !== 1 ? 's' : ''}
           </p>
