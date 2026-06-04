@@ -1,0 +1,91 @@
+.wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.track {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.trackCentered {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.trackCentered .item {
+  width: 280px;
+  max-width: 100%;
+}
+
+.item {
+  min-width: 0;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 18px rgba(249, 115, 22, 0.12);
+  transition: box-shadow var(--transition);
+}
+.item:hover {
+  box-shadow: 0 8px 28px rgba(249, 115, 22, 0.22);
+}
+
+/* Arrows */
+.arrow {
+  position: absolute;
+  top: 40%;
+  transform: translateY(-50%);
+  background: var(--green-dark);
+  border: none;
+  color: var(--white);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  z-index: 5;
+  box-shadow: var(--shadow);
+}
+.arrow:hover:not(:disabled) { background: var(--green); }
+.arrow:disabled { opacity: 0.3; cursor: default; }
+
+.arrowLeft  { left: -22px; }
+.arrowRight { right: -22px; }
+
+/* Dots */
+.dots {
+  display: flex;
+  gap: 0.45rem;
+}
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--gray-light);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+  padding: 0;
+}
+.dotActive {
+  background: var(--green-dark);
+  transform: scale(1.3);
+}
+
+@media (max-width: 700px) {
+  .track { grid-template-columns: repeat(2, 1fr); }
+  .arrowLeft  { left: -12px; }
+  .arrowRight { right: -12px; }
+}
+@media (max-width: 460px) {
+  .track { grid-template-columns: 1fr; }
+}

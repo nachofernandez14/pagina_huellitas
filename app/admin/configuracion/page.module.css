@@ -1,0 +1,235 @@
+.page {
+  padding: 0 0 3rem;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.header { margin-bottom: 2rem; }
+.title {
+  font-family: var(--font-title);
+  font-size: 1.875rem;
+  color: var(--green-dark);
+  margin: 0;
+}
+.subtitle {
+  color: var(--gray);
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+/* ── Section ────────────────────────────────────────────── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 760px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.sectionIcon {
+  width: 44px;
+  height: 44px;
+  background: rgba(14,143,68,0.1);
+  color: var(--green-dark);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sectionTitle {
+  font-family: var(--font-title);
+  font-size: 1.1rem;
+  color: var(--dark);
+  margin: 0 0 0.2rem;
+}
+.sectionDesc {
+  font-size: 0.82rem;
+  color: var(--gray);
+  margin: 0;
+}
+.statusBadge {
+  margin-left: auto;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.statusOk {
+  background: rgba(14,143,68,0.1);
+  color: var(--green-dark);
+}
+.statusEmpty {
+  background: var(--gray-light);
+  color: var(--gray);
+}
+
+/* Current token row */
+.currentToken {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  color: var(--gray);
+}
+.tokenLabel { font-weight: 500; }
+.tokenMask {
+  font-family: monospace;
+  font-size: 0.82rem;
+  background: var(--gray-light);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  color: var(--dark);
+}
+
+/* ── Card ───────────────────────────────────────────────── */
+.card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.cardTitle {
+  font-family: var(--font-title);
+  font-size: 0.95rem;
+  color: var(--dark);
+  margin: 0;
+}
+.cardDesc {
+  font-size: 0.82rem;
+  color: var(--gray);
+  margin: 0;
+  line-height: 1.6;
+}
+.link { color: var(--green-dark); text-decoration: underline; }
+
+/* Token input row */
+.tokenInputRow {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.tokenInputWrap {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+  display: flex;
+}
+.tokenInput {
+  flex: 1;
+  border: 1.5px solid var(--gray-light);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 2.5rem 0.6rem 0.75rem;
+  font-size: 0.85rem;
+  font-family: monospace;
+  outline: none;
+  transition: border-color 0.15s;
+  min-width: 0;
+  width: 100%;
+}
+.tokenInput:focus { border-color: var(--green); }
+.showBtn {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray);
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+.showBtn:hover { color: var(--dark); }
+
+/* Buttons */
+.btn {
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnPrimary {
+  background: var(--green);
+  color: var(--white);
+}
+.btnPrimary:not(:disabled):hover { background: var(--green-dark); }
+.btnGhost {
+  background: var(--gray-light);
+  color: var(--dark);
+}
+.btnGhost:not(:disabled):hover { background: #e0e0e0; }
+
+/* Test result / save message */
+.testResult {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  padding: 0.6rem 0.875rem;
+  border-radius: var(--radius-sm);
+}
+.testOk {
+  background: rgba(14,143,68,0.08);
+  color: var(--green-dark);
+  border: 1px solid rgba(14,143,68,0.2);
+}
+.testError {
+  background: rgba(220,38,38,0.06);
+  color: #dc2626;
+  border: 1px solid rgba(220,38,38,0.2);
+}
+.siteId { opacity: 0.7; font-size: 0.78rem; }
+
+/* ── Info box ───────────────────────────────────────────── */
+.infoBox {
+  background: rgba(59,130,246,0.05);
+  border: 1px solid rgba(59,130,246,0.15);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+}
+.infoTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--dark);
+  margin: 0 0 0.75rem;
+}
+.infoList {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.infoList li {
+  font-size: 0.82rem;
+  color: var(--gray);
+  line-height: 1.5;
+}
+.infoList code {
+  font-family: monospace;
+  background: var(--gray-light);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.78rem;
+}
+.infoNote {
+  margin-top: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--gray);
+  font-style: italic;
+}

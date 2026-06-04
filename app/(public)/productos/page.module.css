@@ -1,0 +1,67 @@
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.empty {
+  text-align: center;
+  padding: 4rem 0;
+  font-size: 1rem;
+}
+
+.breadcrumbNav {
+  font-size: 0.85rem;
+  color: var(--gray);
+  margin-bottom: 0.5rem;
+}
+
+.breadcrumbNav a {
+  color: var(--green-dark);
+  text-decoration: none;
+}
+
+.breadcrumbNav a:hover {
+  text-decoration: underline;
+}
+
+.categoryIntro {
+  max-width: 720px;
+  color: var(--gray);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.relatedCategories {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--gray-light);
+}
+
+.relatedCategoriesTitle {
+  font-family: var(--font-title);
+  font-size: 1.15rem;
+  margin-bottom: 0.75rem;
+  color: var(--dark);
+}
+
+.relatedCategoriesList {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+}
+
+.relatedCategoriesList a {
+  color: var(--green-dark);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.relatedCategoriesList a:hover {
+  text-decoration: underline;
+}

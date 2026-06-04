@@ -1,0 +1,18 @@
+{
+  "name": "Huellitas Petshop Mendoza",
+  "short_name": "Huellitas",
+  "description": "Alimentos y accesorios para mascotas en Mendoza. Compra online con envío en Gran Mendoza.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F2F2F2",
+  "theme_color": "#01A229",
+  "lang": "es-AR",
+  "icons": [
+    {
+      "src": "/images/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
