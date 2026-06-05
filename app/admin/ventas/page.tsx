@@ -75,7 +75,7 @@ export default function VentasAdmin() {
     setItems((prev) => {
       const ex = prev.find((i) => i.product?.id === p.id);
       if (ex) return prev.map((i) => i.product?.id === p.id ? { ...i, cantidad: i.cantidad + 1 } : i);
-      return [...prev, { product: p, nombre: `${p.nombre}${p.kg ? ` ${p.kg}` : ''}`, precio: p.precio ?? 0, cantidad: 1 }];
+      return [...prev, { product: p, nombre: `${p.nombre}${p.kg ? ` ${p.kg}` : ''}`, precio: p.precio_local ?? p.precio ?? 0, cantidad: 1 }];
     });
   };
 
@@ -228,7 +228,7 @@ export default function VentasAdmin() {
                             }}
                           >
                             <span className={styles.dropdownName}>{p.nombre}{p.kg ? ` (${p.kg})` : ''}</span>
-                            <span className={styles.dropdownPrice}>{fmt(p.precio ?? 0)}</span>
+                            <span className={styles.dropdownPrice}>{fmt(p.precio_local ?? p.precio ?? 0)}</span>
                           </li>
                         ))}
                       {products.filter((p) => p.activo && `${p.nombre} ${p.kg ?? ''}`.toLowerCase().includes(productQuery.toLowerCase())).length === 0 && (
@@ -246,7 +246,16 @@ export default function VentasAdmin() {
                     {items.map((item, i) => (
                       <tr key={i}>
                         <td>{item.nombre}</td>
-                        <td>{fmt(item.precio)}</td>
+                        <td>
+                          <input
+                            type="number" min={0}
+                            value={item.precio}
+                            className={styles.priceInput}
+                            onChange={(e) => setItems((prev) => prev.map((x, j) => j === i ? { ...x, precio: Math.max(0, parseFloat(e.target.value) || 0) } : x))}
+                            onWheel={(e) => e.currentTarget.blur()}
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </td>
                         <td>
                           <input
                             type="number" min={1}
