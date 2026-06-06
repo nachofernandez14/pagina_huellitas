@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth';
 import { sendOrderStatusEmail, ESTADOS_CON_EMAIL } from '@/lib/email';
-
-async function requireAdmin() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles').select('rol').eq('id', user.id).single();
-  if (!profile || profile.rol !== 'admin') return null;
-  return createAdminClient();
-}
+import type { CartItem } from '@/types';
 
 // GET /api/admin/orders?estado=pending&canal=web&from=&to=&limit=50&page=1
 export async function GET(req: NextRequest) {
@@ -60,6 +50,33 @@ export async function PATCH(req: NextRequest) {
   const allowed = ['pending', 'paid', 'cancelled', 'failed', 'preparing', 'ready', 'shipped', 'delivered'];
   if (estado && !allowed.includes(estado))
     return NextResponse.json({ error: 'estado inválido' }, { status: 400 });
+
+  // Fetch current order before updating
+  const { data: current, error: fetchErr } = await admin
+    .from('orders')
+    .select('estado, productos')
+    .eq('id', id)
+    .single();
+  if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 500 });
+
+  // Decrement stock when order is marked as delivered (only once)
+  if (estado === 'delivered' && current.estado !== 'delivered') {
+    const productos = (current.productos ?? []) as CartItem[];
+    if (Array.isArray(productos)) {
+      for (const item of productos) {
+        const { data: prod } = await admin
+          .from('products')
+          .select('stock')
+          .eq('id', item.id)
+          .single();
+
+        if (prod) {
+          const newStock = Math.max(0, (prod.stock ?? 0) - item.quantity);
+          await admin.from('products').update({ stock: newStock }).eq('id', item.id);
+        }
+      }
+    }
+  }
 
   const update: Record<string, unknown> = {};
   if (estado !== undefined) update.estado = estado;

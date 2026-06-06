@@ -1,20 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidateTag } from 'next/cache';
-
-// Helper: verify the caller is an authenticated admin
-async function requireAdmin() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('rol')
-    .eq('id', user.id)
-    .single();
-  return profile?.rol === 'admin' ? user : null;
-}
 
 // PATCH /api/products/[id]  — update a product (admin only)
 export async function PATCH(

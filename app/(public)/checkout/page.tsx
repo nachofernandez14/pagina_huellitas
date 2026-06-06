@@ -7,14 +7,10 @@ import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
 import { createClient } from '@/lib/supabase/client';
 import type { GuestCheckoutData } from '@/types';
+import { DeliveryTypeSelector } from './DeliveryTypeSelector';
+import { ZoneAddressSelector } from './ZoneAddressSelector';
+import { PaymentMethodSelector, buildPaymentOptions } from './PaymentMethodSelector';
 import styles from './page.module.css';
-
-const ZONAS = [
-  { value: 'rodeo', label: 'Rodeo de la Cruz' },
-  { value: 'corralitos', label: 'Corralitos' },
-  { value: 'km8', label: 'KM 8' },
-  { value: 'primavera', label: 'Primavera' },
-];
 
 function formatPrice(n: number): string {
   return new Intl.NumberFormat('es-AR', {
@@ -250,8 +246,6 @@ export default function CheckoutPage() {
     }
   };
 
-  const zonaLabel = ZONAS.find((z) => z.value === zona)?.label ?? '';
-
   return (
     <div className="section">
       <div className="container">
@@ -296,104 +290,21 @@ export default function CheckoutPage() {
 
                 {/* ── Entrega ── */}
                 <h3 className={styles.formTitle}>Entrega</h3>
+                <DeliveryTypeSelector
+                  tipoEntrega={tipoEntrega}
+                  onChange={(t) => { setTipoEntrega(t); setMetodoPago(''); if (t === 'retiro') { setZona(''); setDireccion(''); } }}
+                />
 
-                <div className={styles.entregaOpciones}>
-                  <button
-                    type="button"
-                    className={`${styles.entregaBtn} ${tipoEntrega === 'retiro' ? styles.entregaBtnActive : ''}`}
-                    onClick={() => { setTipoEntrega('retiro'); setZona(''); setDireccion(''); setMetodoPago(''); }}
-                  >
-                    <span className={styles.entregaIcon}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-                      </svg>
-                    </span>
-                    <span className={styles.entregaLabel}>Retiro en sucursal</span>
-                    <span className={styles.entregaSub}>Sin costo adicional</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.entregaBtn} ${tipoEntrega === 'envio' ? styles.entregaBtnActive : ''}`}
-                    onClick={() => { setTipoEntrega('envio'); setMetodoPago(''); }}
-                  >
-                    <span className={styles.entregaIcon}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-                      </svg>
-                    </span>
-                    <span className={styles.entregaLabel}>Envio a domicilio</span>
-                    <span className={styles.entregaSub}>Zonas disponibles</span>
-                  </button>
-                </div>
-
-                {/* ── Método de pago ── */}
                 {tipoEntrega === 'retiro' && (
-                  <div className={styles.pagoSection}>
-                    <h3 className={styles.formTitle} style={{ marginTop: '1.5rem' }}>Método de pago</h3>
-                    <div className={styles.entregaOpciones}>
-                      <button type="button" className={`${styles.entregaBtn} ${metodoPago === 'mp' ? styles.entregaBtnActive : ''}`} onClick={() => setMetodoPago('mp')}>
-                        <span className={styles.entregaIcon}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>
-                        <span className={styles.entregaLabel}>Mercado Pago</span>
-                        <span className={styles.entregaSub}>Tarjeta / transferencia</span>
-                      </button>
-                      <button type="button" className={`${styles.entregaBtn} ${metodoPago === 'efectivo' ? styles.entregaBtnActive : ''}`} onClick={() => setMetodoPago('efectivo')}>
-                        <span className={styles.entregaIcon}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg></span>
-                        <span className={styles.entregaLabel}>Efectivo en local</span>
-                        <span className={styles.entregaSub}>Pagás al retirar</span>
-                      </button>
-                    </div>
-                  </div>
+                  <PaymentMethodSelector value={metodoPago} onChange={(v) => setMetodoPago(v as 'mp' | 'efectivo' | '')} options={buildPaymentOptions('retiro')} />
                 )}
 
                 {tipoEntrega === 'envio' && (
-                  <div className={styles.zonaSection}>
-                    <label className={styles.zonaLabel}>Selecciona tu zona *</label>
-                    <div className={styles.zonaOpciones}>
-                      {ZONAS.map((z) => (
-                        <button
-                          key={z.value}
-                          type="button"
-                          className={`${styles.zonaBtn} ${zona === z.value ? styles.zonaBtnActive : ''}`}
-                          onClick={() => { setZona(z.value); setDireccion(''); }}
-                        >
-                          {z.label}
-                        </button>
-                      ))}
-                    </div>
-                    {zona && (
-                      <div className="form-group" style={{ marginTop: '1rem' }}>
-                        <label htmlFor="direccion">Direccion en {zonaLabel} *</label>
-                        <input
-                          id="direccion"
-                          type="text"
-                          value={direccion}
-                          onChange={(e) => setDireccion(e.target.value)}
-                          placeholder={`Tu calle y numero en ${zonaLabel}`}
-                          required
-                          autoComplete="street-address"
-                        />
-                      </div>
-                    )}
-                  </div>
+                  <ZoneAddressSelector zona={zona} direccion={direccion} onZonaChange={setZona} onDireccionChange={setDireccion} />
                 )}
 
-                {/* Método de pago para envio — aparece luego de zona+dirección */}
                 {tipoEntrega === 'envio' && zona && direccion.trim() && (
-                  <div className={styles.pagoSection}>
-                    <h3 className={styles.formTitle} style={{ marginTop: '1.5rem' }}>Método de pago</h3>
-                    <div className={styles.entregaOpciones}>
-                      <button type="button" className={`${styles.entregaBtn} ${metodoPago === 'mp' ? styles.entregaBtnActive : ''}`} onClick={() => setMetodoPago('mp')}>
-                        <span className={styles.entregaIcon}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>
-                        <span className={styles.entregaLabel}>Mercado Pago</span>
-                        <span className={styles.entregaSub}>Tarjeta / transferencia</span>
-                      </button>
-                      <button type="button" className={`${styles.entregaBtn} ${metodoPago === 'efectivo' ? styles.entregaBtnActive : ''}`} onClick={() => setMetodoPago('efectivo')}>
-                        <span className={styles.entregaIcon}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg></span>
-                        <span className={styles.entregaLabel}>Efectivo al recibir</span>
-                        <span className={styles.entregaSub}>Pagás cuando te lo entregamos</span>
-                      </button>
-                    </div>
-                  </div>
+                  <PaymentMethodSelector value={metodoPago} onChange={(v) => setMetodoPago(v as 'mp' | 'efectivo' | '')} options={buildPaymentOptions('envio')} />
                 )}
 
                 {((tipoEntrega === 'envio' && zona && direccion) || tipoEntrega === 'retiro') && metodoPago ? (
@@ -488,122 +399,21 @@ export default function CheckoutPage() {
 
                     {/* ── Entrega ── */}
                     <h3 className={styles.formTitle} style={{ marginTop: '1.5rem' }}>Entrega</h3>
+                    <DeliveryTypeSelector
+                      tipoEntrega={tipoEntrega}
+                      onChange={(t) => { setTipoEntrega(t); setMetodoPago(''); if (t === 'retiro') { setZona(''); setDireccion(''); } }}
+                    />
 
-                    <div className={styles.entregaOpciones}>
-                      <button
-                        type="button"
-                        className={`${styles.entregaBtn} ${tipoEntrega === 'retiro' ? styles.entregaBtnActive : ''}`}
-                        onClick={() => { setTipoEntrega('retiro'); setZona(''); setDireccion(''); setMetodoPago(''); }}
-                      >
-                        <span className={styles.entregaIcon}>
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-                          </svg>
-                        </span>
-                        <span className={styles.entregaLabel}>Retiro en sucursal</span>
-                        <span className={styles.entregaSub}>Sin costo adicional</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.entregaBtn} ${tipoEntrega === 'envio' ? styles.entregaBtnActive : ''}`}
-                        onClick={() => { setTipoEntrega('envio'); setMetodoPago(''); }}
-                      >
-                        <span className={styles.entregaIcon}>
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-                          </svg>
-                        </span>
-                        <span className={styles.entregaLabel}>Envio a domicilio</span>
-                        <span className={styles.entregaSub}>Zonas disponibles</span>
-                      </button>
-                    </div>
-
-                    {/* ── Método de pago (solo retiro) ── */}
                     {tipoEntrega === 'retiro' && (
-                      <div className={styles.pagoSection}>
-                        <h3 className={styles.formTitle} style={{ marginTop: '1.5rem' }}>Método de pago</h3>
-                        <div className={styles.entregaOpciones}>
-                          <button
-                            type="button"
-                            className={`${styles.entregaBtn} ${metodoPago === 'mp' ? styles.entregaBtnActive : ''}`}
-                            onClick={() => setMetodoPago('mp')}
-                          >
-                            <span className={styles.entregaIcon}>
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
-                              </svg>
-                            </span>
-                            <span className={styles.entregaLabel}>Mercado Pago</span>
-                            <span className={styles.entregaSub}>Tarjeta / transferencia</span>
-                          </button>
-                          <button
-                            type="button"
-                            className={`${styles.entregaBtn} ${metodoPago === 'efectivo' ? styles.entregaBtnActive : ''}`}
-                            onClick={() => setMetodoPago('efectivo')}
-                          >
-                            <span className={styles.entregaIcon}>
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>
-                              </svg>
-                            </span>
-                            <span className={styles.entregaLabel}>Efectivo en local</span>
-                            <span className={styles.entregaSub}>Pagás al retirar</span>
-                          </button>
-                        </div>
-                      </div>
+                      <PaymentMethodSelector value={metodoPago} onChange={(v) => setMetodoPago(v as 'mp' | 'efectivo' | '')} options={buildPaymentOptions('retiro')} />
                     )}
 
-                    {/* ── Zonas de envio ── */}
                     {tipoEntrega === 'envio' && (
-                      <div className={styles.zonaSection}>
-                        <label className={styles.zonaLabel}>Selecciona tu zona *</label>
-                        <div className={styles.zonaOpciones}>
-                          {ZONAS.map((z) => (
-                            <button
-                              key={z.value}
-                              type="button"
-                              className={`${styles.zonaBtn} ${zona === z.value ? styles.zonaBtnActive : ''}`}
-                              onClick={() => { setZona(z.value); setDireccion(''); }}
-                            >
-                              {z.label}
-                            </button>
-                          ))}
-                        </div>
-
-                        {zona && (
-                          <div className="form-group" style={{ marginTop: '1rem' }}>
-                            <label htmlFor="direccion">Direccion en {zonaLabel} *</label>
-                            <input
-                              id="direccion"
-                              type="text"
-                              value={direccion}
-                              onChange={(e) => setDireccion(e.target.value)}
-                              placeholder={`Tu calle y numero en ${zonaLabel}`}
-                              required
-                              autoComplete="street-address"
-                            />
-                          </div>
-                        )}
-                      </div>
+                      <ZoneAddressSelector zona={zona} direccion={direccion} onZonaChange={setZona} onDireccionChange={setDireccion} />
                     )}
 
-                    {/* Método de pago para envio — aparece luego de zona+dirección */}
                     {tipoEntrega === 'envio' && zona && direccion.trim() && (
-                      <div className={styles.pagoSection}>
-                        <h3 className={styles.formTitle} style={{ marginTop: '1.5rem' }}>Método de pago</h3>
-                        <div className={styles.entregaOpciones}>
-                          <button type="button" className={`${styles.entregaBtn} ${metodoPago === 'mp' ? styles.entregaBtnActive : ''}`} onClick={() => setMetodoPago('mp')}>
-                            <span className={styles.entregaIcon}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>
-                            <span className={styles.entregaLabel}>Mercado Pago</span>
-                            <span className={styles.entregaSub}>Tarjeta / transferencia</span>
-                          </button>
-                          <button type="button" className={`${styles.entregaBtn} ${metodoPago === 'efectivo' ? styles.entregaBtnActive : ''}`} onClick={() => setMetodoPago('efectivo')}>
-                            <span className={styles.entregaIcon}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg></span>
-                            <span className={styles.entregaLabel}>Efectivo al recibir</span>
-                            <span className={styles.entregaSub}>Pagás cuando te lo entregamos</span>
-                          </button>
-                        </div>
-                      </div>
+                      <PaymentMethodSelector value={metodoPago} onChange={(v) => setMetodoPago(v as 'mp' | 'efectivo' | '')} options={buildPaymentOptions('envio')} />
                     )}
 
                     {/* ── Boton pagar ── */}

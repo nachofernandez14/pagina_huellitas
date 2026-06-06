@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import type { Product, ProductCategory } from '@/types';
 import ImageUpload from '@/components/admin/ImageUpload';
 import Toast from '@/components/ui/Toast';
@@ -20,12 +20,15 @@ function fmt(n: number | null) {
 
 export default function ProductosAdmin() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [total, setTotal] = useState(0);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [page, setPage] = useState(1);
+  const pageRef = useRef(page);
+  pageRef.current = page;
   const [modal, setModal] = useState<{ open: boolean; data: Partial<Product>; isNew: boolean }>({
     open: false, data: EMPTY, isNew: true,
   });
@@ -35,15 +38,23 @@ export default function ProductosAdmin() {
 
   const flash = (m: string) => setMsg(m);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (p: number = 1) => {
     setLoading(true);
-    const params = new URLSearchParams({ limit: '1000', activo: 'all' });
+    const offset = (p - 1) * PAGE_SIZE;
+    const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(offset), activo: 'all' });
     if (catFilter) params.set('categoria', catFilter);
     if (search) params.set('q', search);
     const res = await fetch(`/api/products?${params}`, { cache: 'no-store' });
-    if (res.ok) setProducts(await res.json());
+    if (res.ok) {
+      const json = await res.json();
+      setProducts(json.data ?? []);
+      setTotal(json.total ?? 0);
+    }
     setLoading(false);
   }, [search, catFilter]);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => { setPage(1); }, [search, catFilter]);
 
   // Fetch suppliers once on mount (they rarely change)
   useEffect(() => {
@@ -78,7 +89,7 @@ export default function ProductosAdmin() {
     if (r.ok) {
       flash(modal.isNew ? '✅ Producto creado' : '✅ Producto actualizado');
       closeModal();
-      load();
+      load(pageRef.current);
     } else {
       const text = await r.text();
       const e = text ? JSON.parse(text) : {};
@@ -113,30 +124,21 @@ export default function ProductosAdmin() {
     if (!p) return;
     setConfirmDelete({ open: false, product: null });
     const r = await fetch(`/api/products/${p.id}`, { method: 'DELETE', cache: 'no-store' });
-    if (r.ok) { flash('🗑️ Producto eliminado'); load(); }
+    if (r.ok) { flash('🗑️ Producto eliminado'); load(pageRef.current); }
     else { const e = await r.json(); flash(`❌ ${e.error}`); }
   };
 
   const set = (k: keyof Product, v: unknown) =>
     setModal((m) => ({ ...m, data: { ...m.data, [k]: v } }));
 
-  const searchWords = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
-  const filtered = products.filter((p) =>
-    searchWords.every((w) => p.nombre.toLowerCase().includes(w))
-  );
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  // Reset to page 1 whenever filters change
-  useEffect(() => { setPage(1); }, [search, catFilter]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <div>
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Productos</h1>
-          <p style={{ color: 'var(--gray)', fontSize: '0.875rem' }}>{filtered.length} producto{filtered.length !== 1 ? 's' : ''}</p>
+          <p style={{ color: 'var(--gray)', fontSize: '0.875rem' }}>{total} producto{total !== 1 ? 's' : ''}</p>
         </div>
         <button className="btn btn-primary" onClick={openNew}>+ Nuevo producto</button>
       </div>
@@ -180,7 +182,7 @@ export default function ProductosAdmin() {
               </tr>
             </thead>
             <tbody>
-              {paginated.map((p) => (
+              {products.map((p) => (
                 <tr key={p.id} className={`${!p.activo ? styles.inactive : ''} ${styles.rowClickable}`} onClick={() => openEdit(p)}>
                   <td className={styles.nombre}>{p.nombre}</td>
                   <td className={styles.colHideSm}><span className="badge">{p.categoria}</span></td>
@@ -228,11 +230,11 @@ export default function ProductosAdmin() {
       {/* Pagination */}
       {!loading && totalPages > 1 && (
         <div className={styles.pagination}>
-          <button className={styles.pageBtn} disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+          <button className={styles.pageBtn} disabled={page <= 1} onClick={() => load(page - 1)}>
             ← Anterior
           </button>
           <span className={styles.pageCurrent}>{page} / {totalPages}</span>
-          <button className={styles.pageBtn} disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+          <button className={styles.pageBtn} disabled={page >= totalPages} onClick={() => load(page + 1)}>
             Siguiente →
           </button>
         </div>

@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   }
   let query = supabase
     .from('products')
-    .select('*')
+    .select('*', { count: 'exact' })
     .order('nombre')
     .range(offset, offset + limit - 1);
 
@@ -34,11 +34,11 @@ export async function GET(req: NextRequest) {
   if (categoria) query = query.eq('categoria', categoria);
   if (q) query = query.ilike('nombre', `%${q}%`);
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json(data);
+  return NextResponse.json({ data, total: count ?? 0 });
 }
 
 // POST /api/products  — admin only; used by import script

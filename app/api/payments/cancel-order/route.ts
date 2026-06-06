@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -17,19 +18,24 @@ export async function POST(req: NextRequest) {
 
   const supabase = createAdminClient();
 
-  // Fetch the order and verify ownership via mp_preference_id
   const { data: order, error: fetchError } = await supabase
     .from('orders')
-    .select('id, estado, mp_preference_id')
+    .select('id, estado, mp_preference_id, user_id')
     .eq('id', orderId)
     .single();
 
   if (fetchError || !order) {
-    // Return 200 to not expose order existence
     return NextResponse.json({ ok: true });
   }
 
-  // Only cancel if the preference matches and the order is still pending
+  if (order.user_id) {
+    const userSupabase = await createClient();
+    const { data: { user } } = await userSupabase.auth.getUser();
+    if (!user || user.id !== order.user_id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+  }
+
   if (order.mp_preference_id !== preferenceId || order.estado !== 'pending') {
     return NextResponse.json({ ok: true });
   }

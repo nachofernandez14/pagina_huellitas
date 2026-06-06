@@ -58,8 +58,11 @@ export default function VentasAdmin() {
 
   const openModal = async () => {
     if (!products.length) {
-      const r = await fetch('/api/products?limit=1000');
-      if (r.ok) setProducts(await r.json());
+      const r = await fetch('/api/products?limit=300&offset=0');
+      if (r.ok) {
+        const json = await r.json();
+        setProducts(json.data ?? []);
+      }
     }
     setItems([]);
     setGuestNombre('');
