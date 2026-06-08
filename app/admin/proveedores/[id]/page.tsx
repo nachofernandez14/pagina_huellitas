@@ -6,9 +6,9 @@ import Link from 'next/link';
 import styles from './page.module.css';
 
 interface Supplier { id: string; nombre: string; contacto: string | null; telefono: string | null; }
-interface OrderItem { id: string; descripcion: string; cantidad: number; precio_unitario: number; subtotal: number; }
+interface OrderItem { id: string; product_id: string | null; descripcion: string; cantidad: number; precio_unitario: number; subtotal: number; }
 interface SupplierOrder { id: string; fecha: string; estado: string; total: number; notas: string | null; supplier_order_items: OrderItem[]; }
-interface Payment { id: string; fecha: string; monto: number; tipo: string; descripcion: string | null; }
+interface Payment { id: string; fecha: string; monto: number; tipo: string; descripcion: string | null; comprobante: string | null; }
 interface SupplierProduct { id: string; nombre: string; kg: string | null; precio_costo: number | null; }
 
 interface OrderLineItem { product_id: string | null; descripcion: string; cantidad: number; precio_unitario: number; }
@@ -43,6 +43,7 @@ export default function ProveedorDetail() {
 
   // New order modal
   const [orderModal, setOrderModal] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [orderItems, setOrderItems] = useState<OrderLineItem[]>([{ product_id: null, descripcion: '', cantidad: 1, precio_unitario: 0 }]);
   const [lineQueries, setLineQueries] = useState<string[]>(['']);
   const [openDropdownIdx, setOpenDropdownIdx] = useState<number | null>(null);
@@ -56,6 +57,8 @@ export default function ProveedorDetail() {
   const [payTipo, setPayTipo] = useState('pago');
   const [payDesc, setPayDesc] = useState('');
   const [payFecha, setPayFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [payComprobante, setPayComprobante] = useState<File | null>(null);
+  const [payComprobantePreview, setPayComprobantePreview] = useState<string | null>(null);
   const [savingPay, setSavingPay] = useState(false);
 
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 4000); };
@@ -102,18 +105,47 @@ export default function ProveedorDetail() {
     ));
   };
 
+  const getPriceChange = (item: OrderLineItem) => {
+    if (!item.product_id) return null;
+    const prod = supplierProducts.find((p) => p.id === item.product_id);
+    if (!prod || prod.precio_costo == null) return null;
+    if (item.precio_unitario === prod.precio_costo) return null;
+    return item.precio_unitario > prod.precio_costo ? 'mayor' : 'menor';
+  };
+
   const orderTotal = orderItems.reduce((s, i) => s + i.cantidad * i.precio_unitario, 0);
 
   const handleSaveOrder = async () => {
     if (orderItems.some((i) => !i.descripcion.trim())) { flash('❌ Completa la descripción de cada ítem'); return; }
     setSavingOrder(true);
-    const r = await fetch(`/api/admin/suppliers/${id}/orders`, {
-      method: 'POST',
+
+    const isEditing = !!editingOrderId;
+    const url = isEditing
+      ? `/api/admin/suppliers/${id}/orders/${editingOrderId}`
+      : `/api/admin/suppliers/${id}/orders`;
+    const method = isEditing ? 'PATCH' : 'POST';
+
+    const r = await fetch(url, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ items: orderItems, notas: orderNotas, fecha: orderFecha }),
     });
     setSavingOrder(false);
-    if (r.ok) { flash('✅ Pedido registrado'); setOrderModal(false); load(); }
+    if (r.ok) {
+      const res = await r.json();
+      const parts = [isEditing ? '✅ Pedido actualizado · Stock reajustado' : '✅ Pedido registrado como recibido · Stock actualizado'];
+      if (res.priceChanges?.length > 0) {
+        const msgs = res.priceChanges.map((pc: { descripcion: string; oldPrice: number; newPrice: number }) => {
+          const dir = pc.newPrice > pc.oldPrice ? '⬆️ mayor' : '⬇️ menor';
+          return `${pc.descripcion}: ${fmt(pc.oldPrice)} → ${fmt(pc.newPrice)} (${dir})`;
+        });
+        parts.push(`Precios: ${msgs.join(' · ')}`);
+      }
+      flash(parts.join(' · '));
+      setEditingOrderId(null);
+      setOrderModal(false);
+      load();
+    }
     else { const e = await r.json(); flash(`❌ ${e.error}`); }
   };
 
@@ -121,20 +153,52 @@ export default function ProveedorDetail() {
     const monto = parseFloat(payMonto);
     if (!monto || monto <= 0) { flash('❌ Monto inválido'); return; }
     setSavingPay(true);
+
+    let comprobanteUrl: string | null = null;
+    if (payComprobante) {
+      const form = new FormData();
+      form.append('image', payComprobante);
+      const uploadRes = await fetch('/api/admin/upload-image', { method: 'POST', body: form });
+      if (uploadRes.ok) {
+        const { url } = await uploadRes.json();
+        comprobanteUrl = url;
+      } else {
+        const e = await uploadRes.json();
+        flash(`❌ Error al subir comprobante: ${e.error}`);
+        setSavingPay(false);
+        return;
+      }
+    }
+
     const r = await fetch(`/api/admin/suppliers/${id}/payments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ monto, tipo: payTipo, descripcion: payDesc || null, fecha: payFecha }),
+      body: JSON.stringify({ monto, tipo: payTipo, descripcion: payDesc || null, fecha: payFecha, comprobante: comprobanteUrl }),
     });
     setSavingPay(false);
-    if (r.ok) { flash('✅ Pago registrado'); setPayModal(false); load(); }
+    if (r.ok) { flash('✅ Pago registrado'); setPayModal(false); setPayComprobante(null); setPayComprobantePreview(null); load(); }
     else { const e = await r.json(); flash(`❌ ${e.error}`); }
   };
 
   const updateEstado = async (orderId: string, estado: string) => {
-    await fetch(`/api/admin/supplier-orders/${orderId}`, {
+    const r = await fetch(`/api/admin/supplier-orders/${orderId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado }),
     });
+    if (r.ok) {
+      const res = await r.json();
+      if (res.priceChanges?.length > 0) {
+        const msgs = res.priceChanges.map((pc: { descripcion: string; oldPrice: number; newPrice: number }) => {
+          const dir = pc.newPrice > pc.oldPrice ? '⬆️ mayor' : '⬇️ menor';
+          return `${pc.descripcion}: ${fmt(pc.oldPrice)} → ${fmt(pc.newPrice)} (${dir})`;
+        });
+        flash(`✅ Stock actualizado · Precios: ${msgs.join(' · ')}`);
+      } else {
+        flash('✅ Estado actualizado');
+      }
+    } else {
+      const e = await r.json();
+      flash(`❌ ${e.error}`);
+    }
     load();
   };
 
@@ -142,7 +206,7 @@ export default function ProveedorDetail() {
   const totalPagado = payments.reduce((s, p) => s + Number(p.monto), 0);
 
   // Overlay handlers - fix for text-selection bug
-  const orderOverlay = useOverlayClose(() => setOrderModal(false));
+  const orderOverlay = useOverlayClose(() => { setEditingOrderId(null); setOrderModal(false); });
   const payOverlay = useOverlayClose(() => setPayModal(false));
 
   if (loading) return <p className="text-gray">Cargando...</p>;
@@ -181,12 +245,12 @@ export default function ProveedorDetail() {
         </button>
         <div style={{ flex: 1 }} />
         {tab === 'pedidos' && (
-          <button className="btn btn-primary" style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }} onClick={() => { setOrderItems([{ product_id: null, descripcion: '', cantidad: 1, precio_unitario: 0 }]); setLineQueries(['']); setOpenDropdownIdx(null); setOrderNotas(''); setOrderFecha(new Date().toISOString().split('T')[0]); setOrderModal(true); }}>
+          <button className="btn btn-primary" style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }} onClick={() => { setEditingOrderId(null); setOrderItems([{ product_id: null, descripcion: '', cantidad: 1, precio_unitario: 0 }]); setLineQueries(['']); setOpenDropdownIdx(null); setOrderNotas(''); setOrderFecha(new Date().toISOString().split('T')[0]); setOrderModal(true); }}>
             + Nuevo pedido
           </button>
         )}
         {tab === 'pagos' && (
-          <button className="btn btn-primary" style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }} onClick={() => { setPayMonto(''); setPayDesc(''); setPayTipo('pago'); setPayModal(true); }}>
+          <button className="btn btn-primary" style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }} onClick={() => { setPayMonto(''); setPayDesc(''); setPayTipo('pago'); setPayComprobante(null); setPayComprobantePreview(null); setPayModal(true); }}>
             + Registrar pago
           </button>
         )}
@@ -196,7 +260,7 @@ export default function ProveedorDetail() {
       {tab === 'pedidos' && (
         <div className={styles.tableWrapper}>
           <table className={styles.table}>
-            <thead><tr><th>Fecha</th><th>Estado</th><th>Ítems</th><th>Total</th><th>Notas</th></tr></thead>
+            <thead><tr><th>Fecha</th><th>Estado</th><th>Ítems</th><th>Total</th><th>Notas</th><th></th></tr></thead>
             <tbody>
               {orders.map((o) => (
                 <tr key={o.id}>
@@ -219,9 +283,25 @@ export default function ProveedorDetail() {
                   </td>
                   <td style={{ fontWeight: 700 }}>{fmt(o.total)}</td>
                   <td style={{ color: 'var(--gray)', fontSize: '0.8rem' }}>{o.notas ?? '—'}</td>
+                  <td>
+                    <button className="btn btn-ghost" style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }} onClick={() => {
+                      setEditingOrderId(o.id);
+                      setOrderItems(o.supplier_order_items.map((it) => ({
+                        product_id: it.product_id ?? null,
+                        descripcion: it.descripcion,
+                        cantidad: it.cantidad,
+                        precio_unitario: it.precio_unitario,
+                      })));
+                      setLineQueries(o.supplier_order_items.map(() => ''));
+                      setOpenDropdownIdx(null);
+                      setOrderNotas(o.notas ?? '');
+                      setOrderFecha(o.fecha);
+                      setOrderModal(true);
+                    }}>✏️</button>
+                  </td>
                 </tr>
               ))}
-              {orders.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--gray)', padding: '2rem' }}>Sin pedidos aún</td></tr>}
+              {orders.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--gray)', padding: '2rem' }}>Sin pedidos aún</td></tr>}
             </tbody>
           </table>
         </div>
@@ -231,7 +311,7 @@ export default function ProveedorDetail() {
       {tab === 'pagos' && (
         <div className={styles.tableWrapper}>
           <table className={styles.table}>
-            <thead><tr><th>Fecha</th><th>Tipo</th><th>Monto</th><th>Descripción</th></tr></thead>
+            <thead><tr><th>Fecha</th><th>Tipo</th><th>Monto</th><th>Descripción</th><th>Comprobante</th></tr></thead>
             <tbody>
               {payments.map((p) => (
                 <tr key={p.id}>
@@ -239,9 +319,14 @@ export default function ProveedorDetail() {
                   <td style={{ textTransform: 'capitalize' }}>{p.tipo}</td>
                   <td style={{ fontWeight: 700, color: 'var(--green-dark)' }}>{fmt(p.monto)}</td>
                   <td style={{ color: 'var(--gray)', fontSize: '0.85rem' }}>{p.descripcion ?? '—'}</td>
+                  <td>
+                    {p.comprobante
+                      ? <a href={p.comprobante} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem' }}>📎 Ver</a>
+                      : '—'}
+                  </td>
                 </tr>
               ))}
-              {payments.length === 0 && <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--gray)', padding: '2rem' }}>Sin pagos registrados</td></tr>}
+              {payments.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--gray)', padding: '2rem' }}>Sin pagos registrados</td></tr>}
             </tbody>
           </table>
         </div>
@@ -251,7 +336,7 @@ export default function ProveedorDetail() {
       {orderModal && (
         <div className={styles.overlay} {...orderOverlay}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}><h2>Nuevo pedido — {supplier.nombre}</h2><button className={styles.close} onClick={() => setOrderModal(false)}>✕</button></div>
+            <div className={styles.modalHeader}><h2>{editingOrderId ? 'Editar pedido' : 'Nuevo pedido'} — {supplier.nombre}</h2><button className={styles.close} onClick={() => { setEditingOrderId(null); setOrderModal(false); }}>✕</button></div>
             <div className={styles.modalBody}>
               <div className={styles.grid2}>
                 <div className="form-group"><label>Fecha</label><input type="date" value={orderFecha} onChange={(e) => setOrderFecha(e.target.value)} /></div>
@@ -308,7 +393,11 @@ export default function ProveedorDetail() {
                           : <input value={item.descripcion} onChange={(e) => setLine(i, 'descripcion', e.target.value)} placeholder="Descripción..." className={styles.lineInput} />}
                       </td>
                       <td><input type="number" min={1} step="0.001" value={item.cantidad} onChange={(e) => setLine(i, 'cantidad', parseFloat(e.target.value) || 0)} onWheel={(e) => e.currentTarget.blur()} onFocus={(e) => e.target.select()} className={styles.numInput} /></td>
-                      <td><input type="number" min={0} value={item.precio_unitario} onChange={(e) => setLine(i, 'precio_unitario', parseFloat(e.target.value) || 0)} onWheel={(e) => e.currentTarget.blur()} onFocus={(e) => e.target.select()} className={styles.numInput} /></td>
+                      <td style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <input type="number" min={0} value={item.precio_unitario} onChange={(e) => setLine(i, 'precio_unitario', parseFloat(e.target.value) || 0)} onWheel={(e) => e.currentTarget.blur()} onFocus={(e) => e.target.select()} className={styles.numInput} />
+                        {item.product_id && getPriceChange(item) === 'mayor' && <span title="Precio mayor al actual" style={{ color: 'var(--danger, #e53e3e)', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>⬆️</span>}
+                        {item.product_id && getPriceChange(item) === 'menor' && <span title="Precio menor al actual" style={{ color: 'var(--success, #38a169)', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>⬇️</span>}
+                      </td>
                       <td>{fmt(item.cantidad * item.precio_unitario)}</td>
                       <td>{orderItems.length > 1 && <button className={styles.btnDel} onClick={() => removeLine(i)}>✕</button>}</td>
                     </tr>
@@ -324,7 +413,7 @@ export default function ProveedorDetail() {
               )}
             </div>
             <div className={styles.modalFooter}>
-              <button className="btn btn-ghost" onClick={() => setOrderModal(false)}>Cancelar</button>
+              <button className="btn btn-ghost" onClick={() => { setEditingOrderId(null); setOrderModal(false); }}>Cancelar</button>
               <button className="btn btn-primary" onClick={handleSaveOrder} disabled={savingOrder}>{savingOrder ? 'Guardando...' : 'Guardar pedido'}</button>
             </div>
           </div>
@@ -350,6 +439,30 @@ export default function ProveedorDetail() {
                 </div>
                 <div className="form-group"><label>Monto ($) *</label><input type="number" min={0} value={payMonto} onChange={(e) => setPayMonto(e.target.value)} onWheel={(e) => e.currentTarget.blur()} onFocus={(e) => e.target.select()} placeholder="0" /></div>
                 <div className="form-group"><label>Descripción</label><input value={payDesc} onChange={(e) => setPayDesc(e.target.value)} /></div>
+                <div className="form-group">
+                  <label>Comprobante (boleta/factura)</label>
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      setPayComprobante(file);
+                      if (file && file.type.startsWith('image/')) {
+                        setPayComprobantePreview(URL.createObjectURL(file));
+                      } else {
+                        setPayComprobantePreview(null);
+                      }
+                    }}
+                  />
+                  {payComprobantePreview && (
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <img src={payComprobantePreview} alt="Vista previa" style={{ maxHeight: 120, borderRadius: 6, border: '1px solid var(--border)' }} />
+                    </div>
+                  )}
+                  {payComprobante && !payComprobante.type.startsWith('image/') && (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>📄 {payComprobante.name}</span>
+                  )}
+                </div>
               </div>
             </div>
             <div className={styles.modalFooter}>

@@ -70,5 +70,22 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Decrementar stock de cada producto vendido en local
+  for (const item of productos) {
+    if (item.id && item.quantity) {
+      const { data: prod } = await admin
+        .from('products')
+        .select('stock')
+        .eq('id', item.id)
+        .single();
+
+      if (prod) {
+        const newStock = Math.max(0, (prod.stock ?? 0) - item.quantity);
+        await admin.from('products').update({ stock: newStock }).eq('id', item.id);
+      }
+    }
+  }
+
   return NextResponse.json(data, { status: 201 });
 }
