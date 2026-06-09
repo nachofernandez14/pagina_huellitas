@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -83,6 +83,11 @@ export default async function ProductDetailPage({ params }: Props) {
   const { slug } = await params;
   const product = await getProductBySlugOrId(slug);
   if (!product) notFound();
+
+  // Redirect old UUID URLs to SEO-friendly slugs (301 permanente)
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug) && product.slug) {
+    permanentRedirect(`/productos/${product.slug}`);
+  }
 
   const siblings = await getProductSiblings(product.nombre, product.id);
   const allVariants = [...siblings, product].sort((a, b) =>
