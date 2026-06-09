@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { getProductById, getProductSiblings, getProducts } from '@/lib/products';
+import { getProductBySlugOrId, getProductSiblings, getProducts } from '@/lib/products';
 import { absoluteUrl } from '@/lib/seo/site';
 import { categoryPath, isValidCategorySlug } from '@/lib/seo/categories';
 import AddToCartButton from './AddToCartButton';
@@ -10,12 +10,12 @@ import ProductCard from '@/components/products/ProductCard';
 import styles from './page.module.css';
 
 interface Props {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
-  const product = await getProductById(id);
+  const { slug } = await params;
+  const product = await getProductBySlugOrId(slug);
   if (!product) return { title: 'Producto no encontrado' };
 
   const price = product.descuento && product.descuento > 0 && product.descuento < (product.precio ?? Infinity)
@@ -49,13 +49,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       'compra online',
       product.kg ? `${product.kg}` : '',
     ].filter(Boolean),
-    alternates: { canonical: `/productos/${id}` },
+    alternates: { canonical: `/productos/${product.slug || product.id}` },
     openGraph: {
       title: `${product.nombre} | Huellitas Petshop Mendoza`,
       description: `Compra ${product.nombre} en línea. ${categoryLabel}. Precio: ${
         price ? `$${price.toLocaleString('es-AR')}` : 'Consulta'
       }. Envíos a domicilio.`,
-      url: `/productos/${id}`,
+      url: `/productos/${product.slug || product.id}`,
       type: 'website',
       images: product.imagen
         ? [{ url: product.imagen.startsWith('http') ? product.imagen : `/images/${product.imagen}`, alt: product.nombre }]
@@ -80,11 +80,11 @@ function formatPrice(n: number | null) {
 }
 
 export default async function ProductDetailPage({ params }: Props) {
-  const { id } = await params;
-  const product = await getProductById(id);
+  const { slug } = await params;
+  const product = await getProductBySlugOrId(slug);
   if (!product) notFound();
 
-  const siblings = await getProductSiblings(product.nombre, id);
+  const siblings = await getProductSiblings(product.nombre, product.id);
   const allVariants = [...siblings, product].sort((a, b) =>
     (parseFloat(a.kg ?? '0') || 0) - (parseFloat(b.kg ?? '0') || 0)
   );
@@ -117,7 +117,7 @@ export default async function ProductDetailPage({ params }: Props) {
     : '/images/no-image.svg';
 
   const imageAbsolute = imageSrc.startsWith('http') ? imageSrc : absoluteUrl(imageSrc);
-  const productUrl = absoluteUrl(`/productos/${product.id}`);
+  const productUrl = absoluteUrl(`/productos/${product.slug || product.id}`);
   const categoryHref = isValidCategorySlug(product.categoria)
     ? categoryPath(product.categoria)
     : `/productos?categoria=${product.categoria}`;
@@ -274,7 +274,7 @@ export default async function ProductDetailPage({ params }: Props) {
                   {allVariants.map((v) => (
                     <Link
                       key={v.id}
-                      href={`/productos/${v.id}`}
+                      href={`/productos/${v.slug || v.id}`}
                       className={`${styles.variantChip} ${v.id === product.id ? styles.variantChipActive : ''}`}
                     >
                       {v.kg ?? 'Sin kg'}
@@ -320,7 +320,7 @@ export default async function ProductDetailPage({ params }: Props) {
             ) : (
               <p className={styles.stockOut}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+                  <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="12" y2="15" />
                 </svg>
                 Sin stock
               </p>

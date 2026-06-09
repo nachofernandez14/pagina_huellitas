@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import type { Product, ProductCategory } from '@/types';
+import { generateProductSlug } from '@/lib/slug';
 import ImageUpload from '@/components/admin/ImageUpload';
 import Toast from '@/components/ui/Toast';
 import ConfirmModal from '@/components/admin/ConfirmModal';
@@ -79,6 +80,7 @@ export default function ProductosAdmin() {
     if (saving) return;
     setSaving(true);
     const { id, created_at, updated_at, ...body } = modal.data as Product;
+    body.slug = generateProductSlug(body.nombre, body.kg);
     let r: Response;
     if (modal.isNew) {
       r = await fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useCart } from '@/context/CartContext';
 import type { Product } from '@/types';
+import { productUrl } from '@/lib/slug';
 import styles from './ProductCard.module.css';
 
 interface Props {
@@ -25,7 +26,7 @@ function formatPrice(n: number | null): string {
 export default function ProductCard({ product, groupProducts }: Props) {
   const { addItem } = useCart();
 
-  const productHref = `/productos/${product.id}`;
+  const productHref = productUrl(product.slug, product.id);
 
   // Build kg labels: from group if provided, otherwise from the single product
   const allKgs: string[] = groupProducts

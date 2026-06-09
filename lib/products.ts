@@ -73,6 +73,32 @@ export async function getProductById(id: string): Promise<Product | null> {
   return data as Product;
 }
 
+export async function getProductBySlug(slug: string): Promise<Product | null> {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('products');
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('slug', slug)
+    .single();
+
+  if (error) return null;
+  return data as Product;
+}
+
+/** Looks up a product by slug first; falls back to ID (backward-compat for old UUID URLs). */
+export async function getProductBySlugOrId(slugOrId: string): Promise<Product | null> {
+  const bySlug = await getProductBySlug(slugOrId);
+  if (bySlug) return bySlug;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId)) {
+    return getProductById(slugOrId);
+  }
+  return null;
+}
+
 /** Returns active products with the same name (siblings) excluding the given id. */
 export async function getProductSiblings(nombre: string, excludeId: string): Promise<Product[]> {
   'use cache';

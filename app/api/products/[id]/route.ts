@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { generateProductSlug } from '@/lib/slug';
 import { revalidateTag } from 'next/cache';
 
 // PATCH /api/products/[id]  — update a product (admin only)
@@ -13,6 +14,11 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
+
+  // Regenerate slug when nombre changes (admin UI always sends full object)
+  if (body.nombre !== undefined) {
+    body.slug = generateProductSlug(body.nombre, body.kg);
+  }
 
   const supabaseAdmin = createAdminClient();
   const { data, error } = await supabaseAdmin

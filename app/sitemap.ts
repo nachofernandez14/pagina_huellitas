@@ -9,7 +9,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const products = await getProducts({ limit: 1000 }).catch(() => []);
 
   const productEntries: MetadataRoute.Sitemap = products.map((p) => ({
-    url: `${base}/productos/${p.id}`,
+    url: `${base}/productos/${p.slug || p.id}`,
     lastModified: new Date(p.updated_at),
     changeFrequency: 'weekly' as const,
     priority: 0.8,

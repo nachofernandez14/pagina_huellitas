@@ -22,6 +22,7 @@ export interface Product {
   precio_local?: number | null;
   proteina?: string | null;
   kg_regalo?: string | null;
+  slug?: string | null;
   created_at: string;
   updated_at: string;
 }

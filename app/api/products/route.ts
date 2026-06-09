@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { generateProductSlug } from '@/lib/slug';
 import { revalidateTag } from 'next/cache';
 import type { Product } from '@/types';
 
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
 
   // Single product creation from admin UI
   if (!Array.isArray(body)) {
+    body.slug = generateProductSlug(body.nombre, body.kg);
     const { data, error } = await admin
       .from('products')
       .insert(body)
@@ -71,7 +73,10 @@ export async function POST(req: NextRequest) {
   }
 
   // Bulk upsert (CSV import)
-  const products: Partial<Product>[] = body;
+  const products: Partial<Product>[] = body.map((p: Partial<Product>) => ({
+    ...p,
+    slug: generateProductSlug(p.nombre || '', p.kg),
+  }));
   const { data, error } = await admin
     .from('products')
     .upsert(products, { onConflict: 'nombre,kg' })
