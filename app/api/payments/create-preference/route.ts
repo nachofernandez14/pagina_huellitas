@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createOrder } from '@/lib/orders';
+import { createOrder, cancelPendingOrdersByEmail } from '@/lib/orders';
 import { createMercadoPagoPreference } from '@/lib/mercadopago';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import type { CartItem, GuestCheckoutData } from '@/types';
@@ -128,6 +128,12 @@ export async function POST(req: NextRequest) {
     }
     const finalTotal = Math.max(0, verifiedTotal - promoDiscount);
     // ────────────────────────────────────────────────────────────────────────
+
+    // Cancelar pedidos pendientes anteriores del mismo email (guest abandonado)
+    const existingEmail = guest?.email ?? user?.email;
+    if (existingEmail) {
+      cancelPendingOrdersByEmail(existingEmail).catch(() => {});
+    }
 
     // Para usuarios autenticados, buscar datos del perfil para guardar en el pedido
     let profile: { nombre?: string | null; email?: string | null; telefono?: string | null } | undefined;

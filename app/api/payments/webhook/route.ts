@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac } from 'crypto';
-import { markOrderPaid } from '@/lib/orders';
+import { markOrderPaid, cancelOrder } from '@/lib/orders';
 import { verifyMPPayment } from '@/lib/mercadopago';
 
 const skipSignatureVerification = process.env.MP_IGNORE_SIGNATURE === 'true';
@@ -177,8 +177,24 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 7. Otros estados (pending, in_process, rejected, etc.)
-    console.log('[webhook] Pago en estado:', status, 'No se marca como pagado aún');
+    // 7. Estados de rechazo/cancelación — cancelar la orden
+    if (['rejected', 'cancelled'].includes(status)) {
+      if (orderId) {
+        await cancelOrder(orderId);
+        console.log('[webhook] ✓ Orden cancelada por pago', { status, orderId, paymentId });
+      } else {
+        console.log('[webhook] Pago rechazado/cancelado sin external_reference', { status, paymentId });
+      }
+      return NextResponse.json({
+        received: true,
+        status: 'cancelled',
+        paymentStatus: status,
+        orderId: orderId || null,
+      });
+    }
+
+    // 8. Otros estados (pending, in_process, refunded, charged_back, etc.)
+    console.log('[webhook] Pago en estado:', status, 'No se toma acción automática');
     return NextResponse.json({
       received: true,
       status: 'acknowledged',

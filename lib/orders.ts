@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { CartItem, GuestCheckoutData, Order } from '@/types';
-import { sendOrderConfirmationEmail } from '@/lib/email';
+import { sendOrderConfirmationEmail, sendNewOrderNotificationToAdmin } from '@/lib/email';
 
 export async function createOrder(params: {
   items: CartItem[];
@@ -112,6 +112,24 @@ export async function markOrderPaid(
       formaPago: o.forma_pago ?? formaPago ?? null,
     }).catch(() => { /* silent — never block the payment confirmation */ });
   }
+
+  // Notify admin about the new paid order
+  if (order?.guest_email) {
+    const o = order as Order;
+    sendNewOrderNotificationToAdmin({
+      nombre: o.guest_nombre ?? null,
+      email: o.guest_email!,
+      telefono: o.guest_telefono ?? null,
+      orderId: o.id,
+      items: o.productos,
+      total: o.total,
+      tipoEntrega: o.tipo_entrega ?? null,
+      zona: o.zona ?? null,
+      direccion: o.tipo_entrega === 'envio' ? (o.guest_direccion ?? null) : null,
+      formaPago: o.forma_pago ?? formaPago ?? 'mp',
+      metodoPago: 'Mercado Pago',
+    }).catch(() => {});
+  }
 }
 
 export async function markPromoCodeUsed(code: string, orderId: string): Promise<void> {
@@ -131,4 +149,22 @@ export async function cancelOrder(orderId: string): Promise<void> {
     .update({ estado: 'cancelled' })
     .eq('id', orderId)
     .eq('estado', 'pending'); // Only cancel if still pending
+}
+
+/**
+ * Cancela pedidos MP pendientes del mismo email que tengan más de 30 minutos
+ * (nunca se pagaron, el usuario cerró la pestaña de MP).
+ * No afecta pedidos en efectivo ni pedidos recientes (evita race conditions
+ * con el webhook que tarda en marcar como 'paid').
+ */
+export async function cancelPendingOrdersByEmail(email: string): Promise<void> {
+  const supabase = createAdminClient();
+  const hace30min = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  await supabase
+    .from('orders')
+    .update({ estado: 'cancelled' })
+    .eq('guest_email', email)
+    .eq('estado', 'pending')
+    .not('mp_preference_id', 'is', null)
+    .lt('created_at', hace30min); // Solo órdenes viejas (>30 min)
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createOrder } from '@/lib/orders';
-import { sendOrderConfirmationEmail } from '@/lib/email';
+import { sendOrderConfirmationEmail, sendNewOrderNotificationToAdmin } from '@/lib/email';
 import type { CartItem, GuestCheckoutData } from '@/types';
 
 export async function POST(req: NextRequest) {
@@ -111,6 +111,25 @@ export async function POST(req: NextRequest) {
         zona: entregaInfo?.tipoEntrega === 'envio' ? (entregaInfo.zona ?? null) : null,
         direccion: entregaInfo?.tipoEntrega === 'envio' ? (entregaInfo.direccion ?? null) : null,
         formaPago: 'efectivo',
+      }).catch(() => {});
+    }
+
+    // Notify admin about the new cash order
+    const adminEmail = order.guest_email;
+    if (adminEmail) {
+      const entregaInfo = !user ? guest : delivery;
+      sendNewOrderNotificationToAdmin({
+        nombre: order.guest_nombre ?? null,
+        email: adminEmail,
+        telefono: order.guest_telefono ?? null,
+        orderId: order.id,
+        items,
+        total: finalTotal,
+        tipoEntrega: entregaInfo?.tipoEntrega ?? null,
+        zona: entregaInfo?.tipoEntrega === 'envio' ? (entregaInfo.zona ?? null) : null,
+        direccion: entregaInfo?.tipoEntrega === 'envio' ? (entregaInfo.direccion ?? null) : null,
+        formaPago: 'efectivo',
+        metodoPago: 'Efectivo',
       }).catch(() => {});
     }
 

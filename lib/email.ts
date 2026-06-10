@@ -302,6 +302,79 @@ export async function sendConfirmationEmail(to: string, nombre: string, confirma
 
 // ─── Email: bienvenida al registrarse ──────────────────────────────────────
 
+// ─── Email: notificación de nuevo pedido al administrador ──────────────
+
+export async function sendNewOrderNotificationToAdmin(params: {
+  nombre: string | null;
+  email: string;
+  telefono: string | null;
+  orderId: string;
+  items: CartItem[];
+  total: number;
+  tipoEntrega: 'retiro' | 'envio' | null;
+  zona?: string | null;
+  direccion?: string | null;
+  formaPago?: string | null;
+  metodoPago?: string | null;
+}) {
+  const { nombre, email, telefono, orderId, items, total, tipoEntrega, zona, direccion, formaPago, metodoPago } = params;
+  const shortId = orderId.slice(0, 8).toUpperCase();
+
+  const entregaStr = tipoEntrega === 'envio'
+    ? `Envío a domicilio${zona ? ` (Zona: ${zona})` : ''}${direccion ? `\nDirección: ${direccion}` : ''}`
+    : 'Retiro en sucursal';
+
+  const pagoStr = metodoPago
+    ? `Método de pago: ${metodoPago}`
+    : formaPago === 'efectivo'
+    ? 'Pago en efectivo'
+    : 'Pago con Mercado Pago';
+
+  const productoLines = items.map(i =>
+    `  • ${i.nombre}${i.kg ? ` (${i.kg})` : ''} x${i.quantity} — ${formatPrice(i.precio * i.quantity)}`
+  ).join('\n');
+
+  const body = `
+    <h1 style="margin:0 0 6px;font-size:22px;color:#1a1a1a;font-weight:700;">🛒 ¡Nuevo pedido recibido!</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#555;">Se realizó un nuevo pedido en la tienda.</p>
+    <div style="background:#f7faf8;border-radius:8px;padding:14px 18px;margin-bottom:20px;">
+      <p style="margin:0 0 4px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Pedido</p>
+      <p style="margin:0;font-size:18px;font-weight:700;color:#2d6a4f;">#${shortId}</p>
+    </div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;border-top:1px solid #eee;">
+      <tr>
+        <th style="padding:8px 0;font-size:12px;color:#888;text-align:left;font-weight:600;text-transform:uppercase;">Producto</th>
+        <th style="padding:8px 0;font-size:12px;color:#888;text-align:center;font-weight:600;text-transform:uppercase;">Cant.</th>
+        <th style="padding:8px 0;font-size:12px;color:#888;text-align:right;font-weight:600;text-transform:uppercase;">Subtotal</th>
+      </tr>
+      ${productRows(items)}
+      <tr style="border-top:2px solid #2d6a4f;">
+        <td colspan="2" style="padding:10px 0 0;font-size:15px;font-weight:700;color:#1a1a1a;">Total</td>
+        <td style="padding:10px 0 0;font-size:15px;font-weight:700;color:#2d6a4f;text-align:right;">${formatPrice(total)}</td>
+      </tr>
+    </table>
+    <div style="border-top:1px solid #eee;padding-top:16px;margin-bottom:20px;">
+      <p style="margin:4px 0;font-size:14px;color:#555;">👤 <strong>${nombre ?? 'Sin nombre'}</strong></p>
+      <p style="margin:4px 0;font-size:14px;color:#555;">📧 ${email}</p>
+      <p style="margin:4px 0;font-size:14px;color:#555;">📱 ${telefono ?? 'Sin teléfono'}</p>
+      <p style="margin:4px 0;font-size:14px;color:#555;">${entregaStr.replace(/\n/g, '<br>')}</p>
+      <p style="margin:4px 0;font-size:14px;color:#555;">${pagoStr}</p>
+    </div>
+    <p style="margin:0;font-size:13px;color:#888;">Administrá este pedido desde el panel de administración.</p>
+  `;
+
+  const emailUser = process.env.GMAIL_USER;
+  if (!emailUser) return;
+
+  await transporter.sendMail({
+    from: `"Huellitas Petshop" <${emailUser}>`,
+    to: emailUser,
+    subject: `🛒 Nuevo pedido #${shortId} — ${nombre ?? 'Cliente'} · Huellitas Petshop`,
+    html: emailLayout('Nuevo pedido', body),
+    text: `NUEVO PEDIDO #${shortId}\n\nCliente: ${nombre ?? 'Sin nombre'}\nEmail: ${email}\nTeléfono: ${telefono ?? '-'}\n\n${entregaStr}\n${pagoStr}\n\nProductos:\n${productoLines}\n\nTotal: ${formatPrice(total)}\n\nAdministrá este pedido desde el panel.`,
+  });
+}
+
 export async function sendWelcomeEmail(to: string, nombre: string) {
   const body = `
     <h1 style="margin:0 0 12px;font-size:22px;color:#1a1a1a;font-weight:700;">¡Bienvenido/a, ${nombre}! 🎉</h1>
