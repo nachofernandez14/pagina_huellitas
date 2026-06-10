@@ -12,12 +12,31 @@ export default function RegistroPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
+  const EMAIL_MAX = 254;
+  const PASS_MAX = 128;
+  const NOMBRE_MAX = 100;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (password.length < 8) {
+    const trimmedEmail = email.trim();
+    const trimmedNombre = nombre.trim();
+
+    if (!trimmedNombre || trimmedNombre.length < 2 || trimmedNombre.length > NOMBRE_MAX) {
+      setError('El nombre debe tener entre 2 y 100 caracteres');
+      return;
+    }
+    if (!trimmedEmail || trimmedEmail.length > EMAIL_MAX || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError('Email inválido');
+      return;
+    }
+    if (!password || password.length < 8) {
       setError('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    if (password.length > PASS_MAX) {
+      setError('La contraseña es demasiado larga (máx 128 caracteres)');
       return;
     }
 

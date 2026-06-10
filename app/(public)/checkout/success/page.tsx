@@ -41,21 +41,24 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
 
   // Verificar el pago con MP y marcar como pagado (fallback al webhook)
   if (paymentId && orderId && !isPending && !isCash) {
-    try {
-      const info = await verifyMPPayment(paymentId);
-      if (info && info.status === 'approved' && info.orderId === orderId) {
-        metodoPago = METODO_LABELS[info.paymentType] ?? info.paymentType ?? null;
-        await markOrderPaid(orderId, paymentId, metodoPago ?? undefined);
-        paymentConfirmed = true;
-      } else if (info && info.status !== 'approved') {
-        // Payment was rejected or not approved — cancel order and redirect to failure
-        if (orderId) {
-          try { await cancelOrder(orderId); } catch { /* silent */ }
-        }
-        redirect(`/checkout/failure?order=${orderId ?? ''}`);
+    let info: Awaited<ReturnType<typeof verifyMPPayment>> = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        info = await verifyMPPayment(paymentId);
+        if (info) break;
+      } catch {
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
       }
-    } catch {
-      // Si falla la verificación no bloqueamos la página de éxito
+    }
+    if (info && info.status === 'approved' && info.orderId === orderId) {
+      metodoPago = METODO_LABELS[info.paymentType] ?? info.paymentType ?? null;
+      await markOrderPaid(orderId, paymentId, metodoPago ?? undefined);
+      paymentConfirmed = true;
+    } else if (info && info.status !== 'approved') {
+      if (orderId) {
+        try { await cancelOrder(orderId); } catch { /* silent */ }
+      }
+      redirect(`/checkout/failure?order=${orderId ?? ''}`);
     }
   }
 

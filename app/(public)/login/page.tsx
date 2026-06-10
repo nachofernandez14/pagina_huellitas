@@ -16,12 +16,31 @@ function LoginForm() {
   const confirmed = searchParams.get('confirmed') === '1';
   const redirect = searchParams.get('redirect') || '/perfil';
 
+  const EMAIL_MAX = 254;
+  const PASS_MAX = 128;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail || trimmedEmail.length > EMAIL_MAX) {
+      setError('Email inválido');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError('Email inválido');
+      return;
+    }
+    if (!password || password.length > PASS_MAX) {
+      setError('Contraseña inválida');
+      return;
+    }
+
     setLoading(true);
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: authError } = await supabase.auth.signInWithPassword({ email: trimmedEmail, password });
     setLoading(false);
     if (authError) {
       if (

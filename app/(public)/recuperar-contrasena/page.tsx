@@ -10,14 +10,24 @@ export default function RecuperarContrasenaPage() {
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
 
+  const EMAIL_MAX = 254;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail || trimmedEmail.length > EMAIL_MAX || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError('Email inválido');
+      return;
+    }
+
     setLoading(true);
     const res = await fetch('/api/auth/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email: trimmedEmail }),
     });
     const data = await res.json();
     setLoading(false);

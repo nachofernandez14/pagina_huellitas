@@ -3,6 +3,10 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendConfirmationEmail } from '@/lib/email';
 
+const EMAIL_MAX = 254;
+const PASS_MAX = 128;
+const NOMBRE_MAX = 100;
+
 // POST /api/auth/signup — crea el usuario sin confirmar, genera el link y manda el email nosotros
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
@@ -23,14 +27,14 @@ export async function POST(req: NextRequest) {
     nombre?: string;
   };
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!email || email.length > EMAIL_MAX || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
   }
-  if (!password || password.length < 8) {
-    return NextResponse.json({ error: 'La contraseña debe tener al menos 8 caracteres' }, { status: 400 });
+  if (!password || password.length < 8 || password.length > PASS_MAX) {
+    return NextResponse.json({ error: 'La contraseña debe tener entre 8 y 128 caracteres' }, { status: 400 });
   }
-  if (!nombre || nombre.trim().length < 2) {
-    return NextResponse.json({ error: 'Nombre inválido' }, { status: 400 });
+  if (!nombre || nombre.trim().length < 2 || nombre.trim().length > NOMBRE_MAX) {
+    return NextResponse.json({ error: 'El nombre debe tener entre 2 y 100 caracteres' }, { status: 400 });
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';

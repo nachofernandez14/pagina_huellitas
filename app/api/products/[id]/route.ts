@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin, getCurrentUserId } from '@/lib/auth';
+import { auditLog } from '@/lib/audit';
 import { generateProductSlug } from '@/lib/slug';
 import { revalidateTag } from 'next/cache';
 
@@ -10,18 +10,16 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
   const { id } = await params;
   const body = await req.json();
 
-  // Regenerate slug when nombre changes (admin UI always sends full object)
   if (body.nombre !== undefined) {
     body.slug = generateProductSlug(body.nombre, body.kg);
   }
 
-  const supabaseAdmin = createAdminClient();
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await admin
     .from('products')
     .update(body)
     .eq('id', id)
@@ -30,6 +28,15 @@ export async function PATCH(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   revalidateTag('products', 'max');
+
+  auditLog({
+    user_id: await getCurrentUserId(),
+    action: 'product.update',
+    entity_type: 'products',
+    entity_id: id,
+    details: { changes: Object.keys(body) },
+  });
+
   return NextResponse.json(data);
 }
 
@@ -39,17 +46,25 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
   const { id } = await params;
 
-  const supabaseAdmin = createAdminClient();
-  const { error } = await supabaseAdmin
+  const { error } = await admin
     .from('products')
     .delete()
     .eq('id', id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   revalidateTag('products', 'max');
+
+  auditLog({
+    user_id: await getCurrentUserId(),
+    action: 'product.delete',
+    entity_type: 'products',
+    entity_id: id,
+    details: null,
+  });
+
   return new NextResponse(null, { status: 204 });
 }

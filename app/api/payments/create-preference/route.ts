@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHmac } from 'crypto';
 import { createClient } from '@/lib/supabase/server';
 import { createOrder, cancelPendingOrdersByEmail } from '@/lib/orders';
 import { createMercadoPagoPreference } from '@/lib/mercadopago';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import type { CartItem, GuestCheckoutData } from '@/types';
+
+function generateCancelToken(orderId: string, preferenceId: string): string {
+  const secret = process.env.CLAVE_SECRETA ?? 'cancel-token-fallback';
+  return createHmac('sha256', secret)
+    .update(`${orderId}:${preferenceId}`)
+    .digest('hex');
+}
 
 export async function POST(req: NextRequest) {
   // Rate limiting: max 15 payment preference requests per IP per 10 minutes
@@ -174,7 +182,8 @@ export async function POST(req: NextRequest) {
     const { updateOrderPayment } = await import('@/lib/orders');
     await updateOrderPayment(order.id, mpId);
 
-    return NextResponse.json({ init_point, orderId: order.id, preferenceId: mpId });
+    const cancelToken = generateCancelToken(order.id, mpId);
+    return NextResponse.json({ init_point, orderId: order.id, preferenceId: mpId, cancelToken });
   } catch (err: unknown) {
     const mpErr = err as { message?: string; code?: string; status?: number };
     console.error('[create-preference] MP error:', JSON.stringify(mpErr, null, 2));

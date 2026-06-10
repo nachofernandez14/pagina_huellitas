@@ -1,16 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
-
-async function requireAdmin() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles').select('rol').eq('id', user.id).single();
-  if (!profile || profile.rol !== 'admin') return null;
-  return createAdminClient();
-}
+import { requireAdmin } from '@/lib/auth';
 
 // GET /api/admin/sales?from=2026-01-01&to=2026-12-31&canal=local
 export async function GET(req: NextRequest) {

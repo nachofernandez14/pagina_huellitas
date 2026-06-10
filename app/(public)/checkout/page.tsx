@@ -43,11 +43,11 @@ export default function CheckoutPage() {
     if (!raw) return;
     sessionStorage.removeItem('mp_pending');
     try {
-      const { orderId, preferenceId } = JSON.parse(raw) as { orderId: string; preferenceId: string };
+      const { orderId, preferenceId, cancelToken } = JSON.parse(raw) as { orderId: string; preferenceId: string; cancelToken?: string };
       fetch('/api/payments/cancel-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, preferenceId }),
+        body: JSON.stringify({ orderId, preferenceId, cancelToken }),
       }).catch(() => {});
       setError('El pago no fue completado. Podés intentarlo nuevamente.');
     } catch { /* ignore parse errors */ }
@@ -61,11 +61,11 @@ export default function CheckoutPage() {
       if (!raw) return;
       sessionStorage.removeItem('mp_pending');
       try {
-        const { orderId, preferenceId } = JSON.parse(raw) as { orderId: string; preferenceId: string };
+        const { orderId, preferenceId, cancelToken } = JSON.parse(raw) as { orderId: string; preferenceId: string; cancelToken?: string };
         fetch('/api/payments/cancel-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId, preferenceId }),
+          body: JSON.stringify({ orderId, preferenceId, cancelToken }),
         }).catch(() => {});
       } catch { /* ignore parse errors */ }
       setLoading(false);
@@ -215,8 +215,8 @@ export default function CheckoutPage() {
         throw new Error(data.error ?? 'Error al procesar el pago');
       }
 
-      const { init_point, orderId, preferenceId } = await res.json();
-      sessionStorage.setItem('mp_pending', JSON.stringify({ orderId, preferenceId }));
+      const { init_point, orderId, preferenceId, cancelToken } = await res.json();
+      sessionStorage.setItem('mp_pending', JSON.stringify({ orderId, preferenceId, cancelToken }));
       window.location.href = init_point;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error inesperado');

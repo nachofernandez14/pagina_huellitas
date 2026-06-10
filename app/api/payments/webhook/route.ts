@@ -3,8 +3,9 @@ import { createHmac } from 'crypto';
 import { markOrderPaid, cancelOrder } from '@/lib/orders';
 import { verifyMPPayment } from '@/lib/mercadopago';
 
-const skipSignatureVerification = process.env.MP_IGNORE_SIGNATURE === 'true';
-const allowTestWebhooks = process.env.MP_IGNORE_PAYMENT_VERIFICATION === 'true';
+const isDev = process.env.NODE_ENV === 'development';
+const skipSignatureVerification = isDev && process.env.MP_IGNORE_SIGNATURE === 'true';
+const allowTestWebhooks = isDev && process.env.MP_IGNORE_PAYMENT_VERIFICATION === 'true';
 
 /**
  * Verifica la firma del webhook de Mercado Pago
@@ -18,9 +19,12 @@ function verifyMPSignature(req: NextRequest, rawBody?: string): boolean {
   }
 
   const secret = process.env.CLAVE_SECRETA;
-  // Si no está configurado el secret, omitir verificación (dev/sandbox)
   if (!secret) {
-    console.warn('[webhook] CLAVE_SECRETA no configurada, omitiendo verificación de firma');
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[webhook] CLAVE_SECRETA no configurada — rechazando webhook');
+      return false;
+    }
+    console.warn('[webhook] CLAVE_SECRETA no configurada, omitiendo verificación de firma (solo dev)');
     return true;
   }
 

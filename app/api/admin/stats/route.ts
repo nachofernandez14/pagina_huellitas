@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth';
 import { cacheLife, cacheTag } from 'next/cache';
 
 async function fetchAdminStats(today: string, sevenDaysAgo: string) {
@@ -60,14 +60,8 @@ async function fetchAdminStats(today: string, sevenDaysAgo: string) {
 
 // GET /api/admin/stats — dashboard metrics
 export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const { data: profile } = await supabase
-    .from('profiles').select('rol').eq('id', user.id).single();
-  if (!profile || profile.rol !== 'admin')
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
   const today = new Date().toISOString().split('T')[0];
   const sevenDaysAgo = new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0];

@@ -1,6 +1,10 @@
 import nodemailer from 'nodemailer';
 import type { CartItem } from '@/types';
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -169,9 +173,12 @@ export async function sendOrderConfirmationEmail(params: {
 }) {
   const { to, nombre, orderId, items, total, tipoEntrega, zona, direccion, formaPago } = params;
   const shortId = orderId.slice(0, 8).toUpperCase();
+  const safeNombre = nombre ? escapeHtml(nombre) : null;
+  const safeZona = zona ? escapeHtml(zona) : null;
+  const safeDireccion = direccion ? escapeHtml(direccion) : null;
 
   const entregaHtml = tipoEntrega === 'envio'
-    ? `<p style="margin:4px 0;font-size:14px;color:#555;">📦 Envío a domicilio${zona ? ` · Zona: <strong>${zona}</strong>` : ''}${direccion ? `<br><span style="color:#888;">Dirección: ${direccion}</span>` : ''}</p>`
+    ? `<p style="margin:4px 0;font-size:14px;color:#555;">📦 Envío a domicilio${safeZona ? ` · Zona: <strong>${safeZona}</strong>` : ''}${safeDireccion ? `<br><span style="color:#888;">Dirección: ${safeDireccion}</span>` : ''}</p>`
     : `<p style="margin:4px 0;font-size:14px;color:#555;">🏪 Retiro en sucursal</p>`;
 
   const pagoHtml = formaPago === 'efectivo'
@@ -180,7 +187,7 @@ export async function sendOrderConfirmationEmail(params: {
 
   const body = `
     <h1 style="margin:0 0 6px;font-size:22px;color:#1a1a1a;font-weight:700;">¡Pedido recibido!</h1>
-    <p style="margin:0 0 20px;font-size:15px;color:#555;">Hola${nombre ? ` <strong>${nombre}</strong>` : ''}, recibimos tu pedido correctamente.</p>
+    <p style="margin:0 0 20px;font-size:15px;color:#555;">Hola${safeNombre ? ` <strong>${safeNombre}</strong>` : ''}, recibimos tu pedido correctamente.</p>
     <div style="background:#f7faf8;border-radius:8px;padding:14px 18px;margin-bottom:20px;">
       <p style="margin:0 0 6px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Número de pedido</p>
       <p style="margin:0;font-size:18px;font-weight:700;color:#2d6a4f;">#${shortId}</p>
@@ -225,6 +232,7 @@ export async function sendOrderStatusEmail(params: {
   const { to, nombre, orderId, estado, tipoEntrega } = params;
   const shortId = orderId.slice(0, 8).toUpperCase();
   const label = ESTADO_LABELS[estado] ?? estado;
+  const safeNombre = nombre ? escapeHtml(nombre) : null;
 
   const mensajes: Record<string, string> = {
     paid:      'Tu pago fue confirmado y ya estamos procesando tu pedido.',
@@ -244,7 +252,7 @@ export async function sendOrderStatusEmail(params: {
 
   const body = `
     <h1 style="margin:0 0 6px;font-size:22px;color:#1a1a1a;font-weight:700;">${icono} ${label}</h1>
-    <p style="margin:0 0 20px;font-size:15px;color:#555;">Hola${nombre ? ` <strong>${nombre}</strong>` : ''}, te contamos la novedad de tu pedido.</p>
+    <p style="margin:0 0 20px;font-size:15px;color:#555;">Hola${safeNombre ? ` <strong>${safeNombre}</strong>` : ''}, te contamos la novedad de tu pedido.</p>
     <div style="background:#f7faf8;border-radius:8px;padding:14px 18px;margin-bottom:20px;">
       <p style="margin:0 0 4px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Pedido</p>
       <p style="margin:0;font-size:18px;font-weight:700;color:#2d6a4f;">#${shortId}</p>
@@ -266,10 +274,11 @@ export async function sendOrderStatusEmail(params: {
 // ─── Email: confirmación de cuenta al registrarse ─────────────────────────
 
 export async function sendConfirmationEmail(to: string, nombre: string, confirmationUrl: string) {
+  const safeNombre = escapeHtml(nombre);
   const body = `
     <h1 style="margin:0 0 12px;font-size:22px;color:#1a1a1a;font-weight:700;">Confirmá tu cuenta 🐾</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#444;line-height:1.6;">
-      Hola <strong>${nombre}</strong>, gracias por registrarte en <strong>Huellitas Petshop</strong>.<br>
+      Hola <strong>${safeNombre}</strong>, gracias por registrarte en <strong>Huellitas Petshop</strong>.<br>
       Hacé clic en el botón para activar tu cuenta y empezar a comprar.
     </p>
     <table cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
@@ -319,9 +328,14 @@ export async function sendNewOrderNotificationToAdmin(params: {
 }) {
   const { nombre, email, telefono, orderId, items, total, tipoEntrega, zona, direccion, formaPago, metodoPago } = params;
   const shortId = orderId.slice(0, 8).toUpperCase();
+  const safeNombre = nombre ? escapeHtml(nombre) : null;
+  const safeEmail = escapeHtml(email);
+  const safeTelefono = telefono ? escapeHtml(telefono) : null;
+  const safeZona = zona ? escapeHtml(zona) : null;
+  const safeDireccion = direccion ? escapeHtml(direccion) : null;
 
   const entregaStr = tipoEntrega === 'envio'
-    ? `Envío a domicilio${zona ? ` (Zona: ${zona})` : ''}${direccion ? `\nDirección: ${direccion}` : ''}`
+    ? `Envío a domicilio${safeZona ? ` (Zona: ${safeZona})` : ''}${safeDireccion ? `\nDirección: ${safeDireccion}` : ''}`
     : 'Retiro en sucursal';
 
   const pagoStr = metodoPago
@@ -354,9 +368,9 @@ export async function sendNewOrderNotificationToAdmin(params: {
       </tr>
     </table>
     <div style="border-top:1px solid #eee;padding-top:16px;margin-bottom:20px;">
-      <p style="margin:4px 0;font-size:14px;color:#555;">👤 <strong>${nombre ?? 'Sin nombre'}</strong></p>
-      <p style="margin:4px 0;font-size:14px;color:#555;">📧 ${email}</p>
-      <p style="margin:4px 0;font-size:14px;color:#555;">📱 ${telefono ?? 'Sin teléfono'}</p>
+      <p style="margin:4px 0;font-size:14px;color:#555;">👤 <strong>${safeNombre ?? 'Sin nombre'}</strong></p>
+      <p style="margin:4px 0;font-size:14px;color:#555;">📧 ${safeEmail}</p>
+      <p style="margin:4px 0;font-size:14px;color:#555;">📱 ${safeTelefono ?? 'Sin teléfono'}</p>
       <p style="margin:4px 0;font-size:14px;color:#555;">${entregaStr.replace(/\n/g, '<br>')}</p>
       <p style="margin:4px 0;font-size:14px;color:#555;">${pagoStr}</p>
     </div>
@@ -376,8 +390,9 @@ export async function sendNewOrderNotificationToAdmin(params: {
 }
 
 export async function sendWelcomeEmail(to: string, nombre: string) {
+  const safeNombre = escapeHtml(nombre);
   const body = `
-    <h1 style="margin:0 0 12px;font-size:22px;color:#1a1a1a;font-weight:700;">¡Bienvenido/a, ${nombre}! 🎉</h1>
+    <h1 style="margin:0 0 12px;font-size:22px;color:#1a1a1a;font-weight:700;">¡Bienvenido/a, ${safeNombre}! 🎉</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#444;line-height:1.6;">
       Tu cuenta en <strong>Huellitas Petshop</strong> ya está lista. Ahora podés explorar nuestros productos, hacer pedidos y gestionar todo desde tu perfil.
     </p>

@@ -1,35 +1,21 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth';
 import { parseAllProducts } from '@/lib/csv-parser';
 import { revalidateTag } from 'next/cache';
 
 // POST /api/import-csv — admin only, imports products from CSV files
 export async function POST() {
-  // Verificar que el usuario autenticado sea admin
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('rol')
-    .eq('id', user.id)
-    .single();
-  if (!profile || profile.rol !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
   try {
-    const csvDir = process.cwd(); // CSVs are in the project root
+    const csvDir = process.cwd();
     const products = parseAllProducts(csvDir);
 
     if (products.length === 0) {
       return NextResponse.json({ error: 'No products found in CSV files' }, { status: 400 });
     }
 
-    const admin = createAdminClient();
     const { data, error } = await admin
       .from('products')
       .upsert(products, { onConflict: 'nombre,kg' })

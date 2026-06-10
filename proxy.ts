@@ -4,6 +4,29 @@ import { isValidCategorySlug } from '@/lib/seo/categories';
 
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
+
+  // CSRF protection for state-changing API routes
+  // Allows same-origin requests (Origin matches) or requests with X-Requested-With header
+  if (
+    pathname.startsWith('/api/') &&
+    !pathname.startsWith('/api/payments/webhook') &&
+    ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)
+  ) {
+    const origin = request.headers.get('origin');
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+    const sameOrigin = origin && (
+      origin === siteUrl ||
+      origin === 'http://localhost:3000' ||
+      (siteUrl.startsWith('https://') && origin === siteUrl.replace('https://', 'http://'))
+    );
+    if (!sameOrigin) {
+      const requestedWith = request.headers.get('x-requested-with')?.toLowerCase();
+      if (requestedWith !== 'xmlhttprequest') {
+        return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
+      }
+    }
+  }
+
   if (pathname === '/productos') {
     const categoria = searchParams.get('categoria');
     const q = searchParams.get('q');

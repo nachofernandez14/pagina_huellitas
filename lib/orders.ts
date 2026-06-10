@@ -141,14 +141,35 @@ export async function markPromoCodeUsed(code: string, orderId: string): Promise<
     .eq('used', false);
 }
 
+async function releasePromoCode(orderId: string): Promise<void> {
+  const supabase = createAdminClient();
+  const { data: order } = await supabase
+    .from('orders')
+    .select('promo_code')
+    .eq('id', orderId)
+    .single();
+  if (order?.promo_code) {
+    await supabase
+      .from('promo_codes')
+      .update({ used: false, used_at: null, used_in_order_id: null })
+      .eq('code', order.promo_code)
+      .eq('used_in_order_id', orderId);
+  }
+}
+
 /** Cancels a pending order — idempotent, no-op if already paid/cancelled */
 export async function cancelOrder(orderId: string): Promise<void> {
   const supabase = createAdminClient();
-  await supabase
+  const { data: order } = await supabase
     .from('orders')
     .update({ estado: 'cancelled' })
     .eq('id', orderId)
-    .eq('estado', 'pending'); // Only cancel if still pending
+    .eq('estado', 'pending') // Only cancel if still pending
+    .select('promo_code')
+    .single();
+  if (order?.promo_code) {
+    releasePromoCode(orderId).catch(() => {});
+  }
 }
 
 /**

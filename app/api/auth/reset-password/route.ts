@@ -3,6 +3,8 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendPasswordResetEmail } from '@/lib/email';
 
+const EMAIL_MAX = 254;
+
 // POST /api/auth/reset-password — genera el link y envía mail propio (no Supabase)
 export async function POST(req: NextRequest) {
   // Rate limit: 3 requests per IP per 15 minutes
@@ -19,7 +21,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { email } = await req.json() as { email?: string };
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!email || email.length > EMAIL_MAX || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
   }
 

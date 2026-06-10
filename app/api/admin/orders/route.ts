@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin, getCurrentUserId } from '@/lib/auth';
+import { auditLog } from '@/lib/audit';
 import { sendOrderStatusEmail, ESTADOS_CON_EMAIL } from '@/lib/email';
 import type { CartItem } from '@/types';
 
@@ -101,6 +102,14 @@ export async function PATCH(req: NextRequest) {
       tipoEntrega: data.tipo_entrega ?? null,
     }).catch(() => { /* fallo silencioso */ });
   }
+
+  auditLog({
+    user_id: await getCurrentUserId(),
+    action: 'order.update_status',
+    entity_type: 'orders',
+    entity_id: id,
+    details: { from: current.estado, to: estado },
+  });
 
   return NextResponse.json(data);
 }

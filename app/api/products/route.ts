@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth';
 import { generateProductSlug } from '@/lib/slug';
 import { revalidateTag } from 'next/cache';
 import type { Product } from '@/types';
@@ -44,20 +45,10 @@ export async function GET(req: NextRequest) {
 
 // POST /api/products  — admin only; used by import script
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles').select('rol').eq('id', user.id).single();
-  if (!profile || profile.rol !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
   const body = await req.json();
-  const admin = createAdminClient();
 
   // Single product creation from admin UI
   if (!Array.isArray(body)) {
