@@ -14,6 +14,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const resetOk = searchParams.get('resetOk') === '1';
   const confirmed = searchParams.get('confirmed') === '1';
+  const registered = searchParams.get('registered') === '1';
   const redirect = searchParams.get('redirect') || '/perfil';
 
   const EMAIL_MAX = 254;
@@ -44,12 +45,6 @@ function LoginForm() {
     setLoading(false);
     if (authError) {
       if (
-        authError.message.toLowerCase().includes('not confirmed') ||
-        authError.message.toLowerCase().includes('confirm') ||
-        authError.message.toLowerCase().includes('email')
-      ) {
-        setError('Tu email aún no está confirmado. Revisá tu bandeja de entrada o contactanos para activar la cuenta.');
-      } else if (
         authError.message.toLowerCase().includes('invalid') ||
         authError.message.toLowerCase().includes('credentials')
       ) {
@@ -71,6 +66,11 @@ function LoginForm() {
           ¿No tenés cuenta? <Link href="/registro" className="text-green">Registrarse</Link>
         </p>
 
+        {registered && (
+          <div className={styles.success}>
+            ¡Cuenta creada correctamente! Ya podés ingresar.
+          </div>
+        )}
         {confirmed && (
           <div className={styles.success}>
             ¡Cuenta confirmada! Ya podés ingresar.

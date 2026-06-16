@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import styles from '../auth.module.css';
 
 export default function RegistroPage() {
+  const router = useRouter();
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,6 +60,13 @@ export default function RegistroPage() {
     setSuccess(true);
   };
 
+  useEffect(() => {
+    if (success) {
+      const t = setTimeout(() => router.push('/login?registered=1'), 2000);
+      return () => clearTimeout(t);
+    }
+  }, [success, router]);
+
   if (success) {
     return (
       <div className={styles.page}>
@@ -65,13 +74,9 @@ export default function RegistroPage() {
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem' }}>
             <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
           </svg>
-          <h1 className={styles.title}>Revisá tu email</h1>
+          <h1 className={styles.title}>¡Cuenta creada!</h1>
           <p className={styles.subtitle}>
-            Te mandamos un link de confirmación a <strong>{email}</strong>.<br />
-            Hacé clic en el link para activar tu cuenta.
-          </p>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '1rem' }}>
-            ¿No lo encontrás? Revisá la carpeta de spam.
+            Tu cuenta se creó correctamente. Redirigiendo al inicio de sesión...
           </p>
         </div>
       </div>
