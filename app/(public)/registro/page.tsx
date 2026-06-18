@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { TurnstileWidget } from '@/components/ui/TurnstileWidget';
 import styles from '../auth.module.css';
 
 export default function RegistroPage() {
@@ -13,14 +14,25 @@ export default function RegistroPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
 
   const EMAIL_MAX = 254;
   const PASS_MAX = 128;
   const NOMBRE_MAX = 100;
 
+  const onTurnstileVerify = useCallback((token: string) => {
+    setTurnstileToken(token);
+    setError('');
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!turnstileToken) {
+      setError('Completá la verificación de seguridad');
+      return;
+    }
 
     const trimmedEmail = email.trim();
     const trimmedNombre = nombre.trim();
@@ -46,7 +58,7 @@ export default function RegistroPage() {
     const res = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, nombre }),
+      body: JSON.stringify({ email, password, nombre, turnstileToken }),
     });
 
     const data = await res.json();
@@ -76,7 +88,7 @@ export default function RegistroPage() {
           </svg>
           <h1 className={styles.title}>¡Cuenta creada!</h1>
           <p className={styles.subtitle}>
-            Tu cuenta se creó correctamente. Redirigiendo al inicio de sesión...
+            Te enviamos un email para confirmar tu cuenta. Revisá tu casilla de correo.
           </p>
         </div>
       </div>
@@ -128,11 +140,13 @@ export default function RegistroPage() {
               autoComplete="new-password"
             />
           </div>
+          <TurnstileWidget onVerify={onTurnstileVerify} />
+
           <button
             type="submit"
             className="btn btn-primary w-full"
             style={{ padding: '0.75rem', marginTop: '0.5rem' }}
-            disabled={loading}
+            disabled={loading || !turnstileToken}
           >
             {loading ? 'Creando cuenta...' : 'Crear cuenta'}
           </button>

@@ -1,17 +1,13 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import type { CartItem } from '@/types';
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY!);
+const FROM = `"Huellitas Petshop" <${process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'}>`;
+const ADMIN_EMAIL = process.env.RESEND_ADMIN_EMAIL ?? process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -81,8 +77,8 @@ export async function sendPromoCodeEmail(to: string, code: string) {
     <p style="margin:0;font-size:13px;color:#888;">¿Dudas? Escribinos por WhatsApp y te ayudamos.</p>
   `;
 
-  await transporter.sendMail({
-    from: `"Huellitas Petshop" <${process.env.GMAIL_USER}>`,
+  await resend.emails.send({
+    from: FROM,
     to,
     subject: '🎁 Tu cupón de $5.000 OFF — Huellitas Petshop',
     html: emailLayout('Tu cupón de descuento', body),
@@ -91,8 +87,8 @@ export async function sendPromoCodeEmail(to: string, code: string) {
 }
 
 export async function sendPasswordResetEmail(to: string, resetLink: string) {
-  await transporter.sendMail({
-    from: `"Huellitas Petshop" <${process.env.GMAIL_USER}>`,
+  await resend.emails.send({
+    from: FROM,
     to,
     subject: 'Recuperá tu contraseña — Huellitas Petshop',
     html: `
@@ -211,8 +207,8 @@ export async function sendOrderConfirmationEmail(params: {
     <p style="margin:20px 0 0;font-size:13px;color:#888;">Te vamos a avisar cuando tu pedido esté listo. Ante cualquier consulta podés escribirnos por WhatsApp.</p>
   `;
 
-  await transporter.sendMail({
-    from: `"Huellitas Petshop" <${process.env.GMAIL_USER}>`,
+  await resend.emails.send({
+    from: FROM,
     to,
     subject: `Pedido recibido #${shortId} — Huellitas Petshop`,
     html: emailLayout(`Pedido #${shortId}`, body),
@@ -262,8 +258,8 @@ export async function sendOrderStatusEmail(params: {
     <p style="margin:20px 0 0;font-size:13px;color:#888;">Ante cualquier consulta podés escribirnos por WhatsApp.</p>
   `;
 
-  await transporter.sendMail({
-    from: `"Huellitas Petshop" <${process.env.GMAIL_USER}>`,
+  await resend.emails.send({
+    from: FROM,
     to,
     subject: `${icono} ${label} — Pedido #${shortId} · Huellitas Petshop`,
     html: emailLayout(label, body),
@@ -339,15 +335,76 @@ export async function sendNewOrderNotificationToAdmin(params: {
     <p style="margin:0;font-size:13px;color:#888;">Administrá este pedido desde el panel de administración.</p>
   `;
 
-  const emailUser = process.env.GMAIL_USER;
-  if (!emailUser) return;
-
-  await transporter.sendMail({
-    from: `"Huellitas Petshop" <${emailUser}>`,
-    to: emailUser,
+  await resend.emails.send({
+    from: FROM,
+    to: ADMIN_EMAIL,
     subject: `🛒 Nuevo pedido #${shortId} — ${nombre ?? 'Cliente'} · Huellitas Petshop`,
     html: emailLayout('Nuevo pedido', body),
     text: `NUEVO PEDIDO #${shortId}\n\nCliente: ${nombre ?? 'Sin nombre'}\nEmail: ${email}\nTeléfono: ${telefono ?? '-'}\n\n${entregaStr}\n${pagoStr}\n\nProductos:\n${productoLines}\n\nTotal: ${formatPrice(total)}\n\nAdministrá este pedido desde el panel.`,
+  });
+}
+
+export async function sendVerificationEmail(to: string, verificationLink: string) {
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: 'Confirmá tu email — Huellitas Petshop',
+    html: `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </head>
+      <body style="margin:0;padding:0;background:#f5f5f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0;">
+          <tr>
+            <td align="center">
+              <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                <tr>
+                  <td style="background:#2d6a4f;padding:28px 40px;text-align:center;">
+                    <span style="color:#ffffff;font-size:22px;font-weight:700;">🐾 Huellitas Petshop</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:40px 40px 32px;">
+                    <h1 style="margin:0 0 16px;font-size:22px;color:#1a1a1a;font-weight:700;">Confirmá tu email</h1>
+                    <p style="margin:0 0 24px;font-size:15px;color:#444;line-height:1.6;">
+                      Gracias por registrarte en <strong>Huellitas Petshop</strong>. Hacé clic en el botón para confirmar tu dirección de email y activar tu cuenta.
+                    </p>
+                    <table cellpadding="0" cellspacing="0" style="margin:0 auto 32px;">
+                      <tr>
+                        <td style="background:#2d6a4f;border-radius:8px;">
+                          <a href="${verificationLink}" target="_blank"
+                            style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:8px;">
+                            Confirmar email
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                    <p style="margin:0 0 8px;font-size:13px;color:#888;line-height:1.5;">
+                      Si no creaste una cuenta, podés ignorar este email.
+                    </p>
+                    <p style="margin:0;font-size:13px;color:#888;line-height:1.5;">
+                      El link tiene una validez de <strong>24 horas</strong>.
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background:#f9f9f9;padding:20px 40px;text-align:center;border-top:1px solid #eeeeee;">
+                    <p style="margin:0;font-size:12px;color:#aaa;">
+                      Huellitas Petshop · Mendoza, Argentina
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `,
+    text: `Confirmá tu email — Huellitas Petshop\n\nGracias por registrarte. Hacé clic en este link para confirmar tu email:\n${verificationLink}\n\nSi no creaste una cuenta, ignorá este email.\nEl link vence en 24 horas.`,
   });
 }
 
@@ -373,8 +430,8 @@ export async function sendWelcomeEmail(to: string, nombre: string) {
     </p>
   `;
 
-  await transporter.sendMail({
-    from: `"Huellitas Petshop" <${process.env.GMAIL_USER}>`,
+  await resend.emails.send({
+    from: FROM,
     to,
     subject: '¡Bienvenido/a a Huellitas Petshop!',
     html: emailLayout('Bienvenida', body),

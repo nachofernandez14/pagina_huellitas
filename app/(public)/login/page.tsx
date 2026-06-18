@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { TurnstileWidget } from '@/components/ui/TurnstileWidget';
 import styles from '../auth.module.css';
 
 function LoginForm() {
@@ -11,18 +11,55 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
   const searchParams = useSearchParams();
   const resetOk = searchParams.get('resetOk') === '1';
   const confirmed = searchParams.get('confirmed') === '1';
   const registered = searchParams.get('registered') === '1';
+  const verifyError = searchParams.get('error');
   const redirect = searchParams.get('redirect') || '/perfil';
 
   const EMAIL_MAX = 254;
   const PASS_MAX = 128;
 
+  const onTurnstileVerify = useCallback((token: string) => {
+    setTurnstileToken(token);
+    setError('');
+  }, []);
+
+  const handleResend = async () => {
+    if (!email.trim() || resending || resent) return;
+    setResending(true);
+    try {
+      const res = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (res.ok) {
+        setResent(true);
+        setError('');
+      }
+    } catch {
+      // Silencio
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setEmailNotConfirmed(false);
+    setResent(false);
+
+    if (!turnstileToken) {
+      setError('Completá la verificación de seguridad');
+      return;
+    }
 
     const trimmedEmail = email.trim();
 
@@ -40,22 +77,26 @@ function LoginForm() {
     }
 
     setLoading(true);
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({ email: trimmedEmail, password });
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: trimmedEmail, password, turnstileToken }),
+    });
     setLoading(false);
-    if (authError) {
-      if (
-        authError.message.toLowerCase().includes('invalid') ||
-        authError.message.toLowerCase().includes('credentials')
-      ) {
-        setError('Email o contraseña incorrectos.');
+
+    if (!res.ok) {
+      const data = await res.json();
+      if (data.emailNotConfirmed) {
+        setEmailNotConfirmed(true);
+        setError(data.error ?? 'Email no confirmado.');
       } else {
-        setError(authError.message);
+        setError(data.error ?? 'Error al iniciar sesión');
       }
-    } else {
-      // Hard redirect so the browser sends fresh auth cookies to the server
-      window.location.href = redirect;
+      return;
     }
+
+    // Hard redirect so the browser sends fresh auth cookies to the server
+    window.location.href = redirect;
   };
 
   return (
@@ -68,7 +109,7 @@ function LoginForm() {
 
         {registered && (
           <div className={styles.success}>
-            ¡Cuenta creada correctamente! Ya podés ingresar.
+            ¡Cuenta creada! Revisá tu casilla de correo para confirmar tu email antes de ingresar.
           </div>
         )}
         {confirmed && (
@@ -81,7 +122,38 @@ function LoginForm() {
             Contraseña actualizada correctamente. Ya podés iniciar sesión.
           </div>
         )}
-        {error && <div className={styles.error}>{error}</div>}
+        {verifyError === 'verificacion-invalida' && (
+          <div className={styles.error}>
+            El link de verificación es inválido o expiró. Solicitá uno nuevo.
+          </div>
+        )}
+        {verifyError === 'verificacion-expirada' && (
+          <div className={styles.error}>
+            El link de verificación expiró. Solicitá uno nuevo.
+          </div>
+        )}
+        {error && !emailNotConfirmed && <div className={styles.error}>{error}</div>}
+
+        {emailNotConfirmed && (
+          <div className={styles.error}>
+            <p style={{ margin: '0 0 0.5rem' }}>{error}</p>
+            {resent ? (
+              <p style={{ margin: 0, color: 'var(--green-dark)', fontWeight: 600 }}>
+                ¡Email reenviado! Revisá tu casilla de correo.
+              </p>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+                onClick={handleResend}
+                disabled={resending}
+              >
+                {resending ? 'Reenviando...' : 'Reenviar verificación'}
+              </button>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className="form-group">
@@ -111,11 +183,13 @@ function LoginForm() {
               </Link>
             </div>
           </div>
+          <TurnstileWidget onVerify={onTurnstileVerify} />
+
           <button
             type="submit"
             className="btn btn-primary w-full"
             style={{ padding: '0.75rem', marginTop: '0.5rem' }}
-            disabled={loading}
+            disabled={loading || !turnstileToken}
           >
             {loading ? 'Ingresando...' : 'Ingresar'}
           </button>

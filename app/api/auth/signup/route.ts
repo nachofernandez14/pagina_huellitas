@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { verifyTurnstileToken } from '@/lib/turnstile';
+import { createVerificationToken } from '@/lib/verification-token';
+import { sendVerificationEmail } from '@/lib/email';
 
 const EMAIL_MAX = 254;
 const PASS_MAX = 128;
 const NOMBRE_MAX = 100;
 
-// POST /api/auth/signup — crea el usuario ya confirmado (sin verificación de email)
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
   const rl = checkRateLimit(`signup:${ip}`, 5, 15 * 60 * 1000);
@@ -20,11 +24,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { email, password, nombre } = await req.json() as {
+  const { email, password, nombre, turnstileToken } = await req.json() as {
     email?: string;
     password?: string;
     nombre?: string;
+    turnstileToken?: string;
   };
+
+  if (!turnstileToken || !(await verifyTurnstileToken(turnstileToken))) {
+    return NextResponse.json({ error: 'Verificación de seguridad fallada. Intentá de nuevo.' }, { status: 400 });
+  }
 
   if (!email || email.length > EMAIL_MAX || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
@@ -39,10 +48,10 @@ export async function POST(req: NextRequest) {
   const normalizedEmail = email.toLowerCase().trim();
   const admin = createAdminClient();
 
-  const { error } = await admin.auth.admin.createUser({
+  const { data, error } = await admin.auth.admin.createUser({
     email: normalizedEmail,
     password,
-    email_confirm: true,
+    email_confirm: false,
     user_metadata: { nombre: nombre.trim() },
   });
 
@@ -52,6 +61,27 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+
+  const userId = data.user.id;
+
+  // Crear perfil en la tabla profiles con el nombre del registro
+  try {
+    await admin.from('profiles').upsert({
+      id: userId,
+      nombre: nombre.trim(),
+      email: normalizedEmail,
+      rol: 'cliente',
+    });
+  } catch {
+    // Si ya existe (trigger de Supabase), se ignora
+  }
+
+  const token = createVerificationToken(userId, normalizedEmail);
+  const verificationLink = `${SITE_URL}/api/auth/confirm-email?token=${token}`;
+
+  await sendVerificationEmail(normalizedEmail, verificationLink).catch(() => {
+    // Error silencioso — el usuario se creó igual, puede reenviar desde login
+  });
 
   return NextResponse.json({ ok: true });
 }
