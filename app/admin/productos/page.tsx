@@ -84,9 +84,9 @@ export default function ProductosAdmin() {
     body.slug = generateProductSlug(body.nombre, body.kg);
     let r: Response;
     if (modal.isNew) {
-      r = await fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
+      r = await fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(body), cache: 'no-store' });
     } else {
-      r = await fetch(`/api/products/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
+      r = await fetch(`/api/products/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(body), cache: 'no-store' });
     }
     setSaving(false);
     if (r.ok) {

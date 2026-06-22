@@ -72,7 +72,7 @@ export default function ImageUpload({ currentImage, onChange, onError }: Props) 
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.[^.]+$/, `.${ext}`);
       const form = new FormData();
       form.append('image', blob, safeName);
-      const res = await fetch('/api/admin/upload-image', { method: 'POST', body: form });
+      const res = await fetch('/api/admin/upload-image', { method: 'POST', body: form, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
       if (!res.ok) {
         const e = await res.json();
         throw new Error(e.error ?? 'Error al subir imagen');
