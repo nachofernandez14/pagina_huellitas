@@ -71,7 +71,7 @@ export default function CajaPage() {
     setSaving(true);
     const r = await fetch('/api/admin/caja', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({
         fecha: form.fecha,
         saldo_inicial: parseFloat(form.saldo_inicial) || 0,

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import type { Order } from '@/types';
 import ProfileForm from './ProfileForm';
+import SignOutButton from './SignOutButton';
 import styles from './page.module.css';
 
 function formatPrice(n: number): string {
@@ -70,16 +71,7 @@ async function PerfilContent() {
             <h1 className={styles.heroName}>{profile?.nombre ?? 'Sin nombre'}</h1>
             <p className={styles.heroEmail}>{user.email}</p>
           </div>
-          <form action="/api/auth/signout" method="POST" className={styles.signOutForm}>
-            <button type="submit" className={`btn btn-ghost ${styles.signOutBtn}`}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
-                <polyline points="16 17 21 12 16 7"/>
-                <line x1="21" y1="12" x2="9" y2="12"/>
-              </svg>
-              Cerrar sesión
-            </button>
-          </form>
+          <SignOutButton />
         </div>
 
         {/* Admin access */}

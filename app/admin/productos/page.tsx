@@ -126,7 +126,7 @@ export default function ProductosAdmin() {
     const p = confirmDelete.product;
     if (!p) return;
     setConfirmDelete({ open: false, product: null });
-    const r = await fetch(`/api/products/${p.id}`, { method: 'DELETE', cache: 'no-store' });
+    const r = await fetch(`/api/products/${p.id}`, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' }, cache: 'no-store' });
     if (r.ok) { flash('🗑️ Producto eliminado'); load(pageRef.current); }
     else { const e = await r.json(); flash(`❌ ${e.error}`); }
   };

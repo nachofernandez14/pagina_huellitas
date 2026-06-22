@@ -51,8 +51,8 @@ export default function ProveedoresAdmin() {
     if (!modal.data.nombre.trim()) { flash('❌ El nombre es requerido'); return; }
     setSaving(true);
     const r = modal.id
-      ? await fetch(`/api/admin/suppliers/${modal.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(modal.data) })
-      : await fetch('/api/admin/suppliers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(modal.data) });
+      ? await fetch(`/api/admin/suppliers/${modal.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(modal.data) })
+      : await fetch('/api/admin/suppliers', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(modal.data) });
     setSaving(false);
     if (r.ok) { flash(modal.id ? '✅ Proveedor actualizado' : '✅ Proveedor creado'); setModal((m) => ({ ...m, open: false })); load(); }
     else { const e = await r.json(); flash(`❌ ${e.error}`); }

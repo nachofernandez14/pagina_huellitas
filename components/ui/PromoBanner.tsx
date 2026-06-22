@@ -36,7 +36,7 @@ export default function PromoBanner() {
     try {
       await fetch('/api/subscribe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({ ...form, email: userEmail }),
       });
     } catch {

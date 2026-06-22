@@ -46,7 +46,7 @@ export default function CheckoutPage() {
       const { orderId, preferenceId, cancelToken } = JSON.parse(raw) as { orderId: string; preferenceId: string; cancelToken?: string };
       fetch('/api/payments/cancel-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({ orderId, preferenceId, cancelToken }),
       }).catch(() => {});
       setError('El pago no fue completado. Podés intentarlo nuevamente.');
@@ -64,7 +64,7 @@ export default function CheckoutPage() {
         const { orderId, preferenceId, cancelToken } = JSON.parse(raw) as { orderId: string; preferenceId: string; cancelToken?: string };
         fetch('/api/payments/cancel-order', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
           body: JSON.stringify({ orderId, preferenceId, cancelToken }),
         }).catch(() => {});
       } catch { /* ignore parse errors */ }
@@ -98,7 +98,7 @@ export default function CheckoutPage() {
     try {
       const res = await fetch('/api/promo/validate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({ code, total }),
       });
       const data = await res.json();
@@ -206,7 +206,7 @@ export default function CheckoutPage() {
     try {
       const res = await fetch('/api/payments/create-preference', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({ items, total, guest: guestData, delivery, promoCode: promoApplied?.code }),
       });
 
@@ -230,7 +230,7 @@ export default function CheckoutPage() {
     try {
       const res = await fetch('/api/payments/cash-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({ items, total, guest: guestData, delivery, promoCode: promoApplied?.code }),
       });
       if (!res.ok) {

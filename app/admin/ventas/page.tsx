@@ -92,7 +92,7 @@ export default function VentasAdmin() {
     setSaving(true);
     const r = await fetch('/api/admin/sales', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({
         productos: items.map((i) => ({ id: i.product?.id, nombre: i.nombre, precio: i.precio, quantity: i.cantidad })),
         total,

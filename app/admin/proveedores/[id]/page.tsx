@@ -127,7 +127,7 @@ export default function ProveedorDetail() {
 
     const r = await fetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({ items: orderItems, notas: orderNotas, fecha: orderFecha }),
     });
     setSavingOrder(false);
@@ -158,7 +158,7 @@ export default function ProveedorDetail() {
     if (payComprobante) {
       const form = new FormData();
       form.append('image', payComprobante);
-      const uploadRes = await fetch('/api/admin/upload-image', { method: 'POST', body: form });
+      const uploadRes = await fetch('/api/admin/upload-image', { method: 'POST', body: form, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
       if (uploadRes.ok) {
         const { url } = await uploadRes.json();
         comprobanteUrl = url;
@@ -172,7 +172,7 @@ export default function ProveedorDetail() {
 
     const r = await fetch(`/api/admin/suppliers/${id}/payments`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({ monto, tipo: payTipo, descripcion: payDesc || null, fecha: payFecha, comprobante: comprobanteUrl }),
     });
     setSavingPay(false);
@@ -182,7 +182,7 @@ export default function ProveedorDetail() {
 
   const updateEstado = async (orderId: string, estado: string) => {
     const r = await fetch(`/api/admin/supplier-orders/${orderId}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado }),
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify({ estado }),
     });
     if (r.ok) {
       const res = await r.json();

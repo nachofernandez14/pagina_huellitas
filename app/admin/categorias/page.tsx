@@ -41,8 +41,8 @@ export default function CategoriasAdmin() {
     if (!modal.data.nombre || !modal.data.slug) { flash('❌ Nombre y slug son requeridos'); return; }
     setSaving(true);
     const r = modal.isNew
-      ? await fetch('/api/admin/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(modal.data) })
-      : await fetch(`/api/admin/categories/${modal.data.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(modal.data) });
+      ? await fetch('/api/admin/categories', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(modal.data) })
+      : await fetch(`/api/admin/categories/${modal.data.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(modal.data) });
     setSaving(false);
     if (r.ok) { flash(modal.isNew ? '✅ Categoría creada' : '✅ Categoría actualizada'); setModal((m) => ({ ...m, open: false })); load(); }
     else { const e = await r.json(); flash(`❌ ${e.error}`); }
@@ -56,7 +56,7 @@ export default function CategoriasAdmin() {
     const c = confirmDelete.cat;
     if (!c) return;
     setConfirmDelete({ open: false, cat: null });
-    const r = await fetch(`/api/admin/categories/${c.id}`, { method: 'DELETE' });
+    const r = await fetch(`/api/admin/categories/${c.id}`, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
     if (r.ok) { flash('🗑️ Categoría eliminada'); load(); }
     else { const e = await r.json(); flash(`❌ ${e.error}`); }
   };

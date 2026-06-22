@@ -75,8 +75,8 @@ export default function GastosAdmin() {
       category_id: modal.data.category_id || null,
     };
     const r = modal.id
-      ? await fetch(`/api/admin/expenses/${modal.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      : await fetch('/api/admin/expenses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      ? await fetch(`/api/admin/expenses/${modal.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(body) })
+      : await fetch('/api/admin/expenses', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(body) });
     setSaving(false);
     if (r.ok) { flash(modal.id ? '✅ Gasto actualizado' : '✅ Gasto registrado'); setModal((m) => ({ ...m, open: false })); load(); }
     else { const e = await r.json(); flash(`❌ ${e.error}`); }
@@ -89,7 +89,7 @@ export default function GastosAdmin() {
   const doDelete = async () => {
     const { id } = confirmDelete;
     setConfirmDelete({ open: false, id: '', desc: '' });
-    const r = await fetch(`/api/admin/expenses/${id}`, { method: 'DELETE' });
+    const r = await fetch(`/api/admin/expenses/${id}`, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
     if (r.ok) { flash('✅ Eliminado'); load(); }
   };
 

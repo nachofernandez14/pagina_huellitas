@@ -34,7 +34,7 @@ export default function ProfileForm({ initialNombre, initialTelefono, initialDir
     try {
       const res = await fetch('/api/profile', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({ nombre, telefono, direccion, zona }),
       });
       const data = await res.json();

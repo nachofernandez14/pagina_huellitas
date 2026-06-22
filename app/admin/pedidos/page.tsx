@@ -141,7 +141,7 @@ export default function PedidosAdmin() {
     setSaving(true);
     const r = await fetch('/api/admin/orders', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({ id: selected.id, estado: newEstado }),
     });
     setSaving(false);
@@ -243,7 +243,7 @@ export default function PedidosAdmin() {
                               const next = ESTADO_NEXT[o.estado]!;
                               const r = await fetch('/api/admin/orders', {
                                 method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                                 body: JSON.stringify({ id: o.id, estado: next }),
                               });
                               if (r.ok) { flash(`✅ ${ESTADO_LABELS[next]}`); load(page); }

@@ -26,7 +26,7 @@ export default function RecuperarContrasenaPage() {
     setLoading(true);
     const res = await fetch('/api/auth/reset-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({ email: trimmedEmail }),
     });
     const data = await res.json();

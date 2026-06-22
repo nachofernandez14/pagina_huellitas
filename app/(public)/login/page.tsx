@@ -36,7 +36,7 @@ function LoginForm() {
     try {
       const res = await fetch('/api/auth/resend-verification', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({ email: email.trim() }),
       });
       if (res.ok) {
@@ -79,7 +79,7 @@ function LoginForm() {
     setLoading(true);
     const res = await fetch('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({ email: trimmedEmail, password, turnstileToken }),
     });
     setLoading(false);

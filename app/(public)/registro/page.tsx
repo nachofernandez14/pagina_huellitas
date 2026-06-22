@@ -57,7 +57,7 @@ export default function RegistroPage() {
     setLoading(true);
     const res = await fetch('/api/auth/signup', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({ email, password, nombre, turnstileToken }),
     });
 
