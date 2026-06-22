@@ -237,6 +237,8 @@ export default async function HomePage() {
         </section>
       )}
 
+
+
       <section className={`section ${styles.sectionTrust}`}>
         <div className="container">
           <h2 className={styles.sectionTrustTitle}>¿Por qué elegirnos?</h2>
@@ -259,6 +261,40 @@ export default async function HomePage() {
       </section>
 
       <MarcasSection />
+
+      <section className={styles.sectionLostPets}>
+        <div className="container">
+          <div className={styles.lostPetsInner}>
+            <div className={styles.lostPetsContent}>
+              <span className={styles.lostPetsTag}>Ayudanos a ayudar</span>
+              <h2 className={styles.lostPetsTitle}>Mascotas perdidas</h2>
+              <p className={styles.lostPetsDesc}>
+                ¿Perdiste o encontraste una mascota? Publicá un aviso gratis y ayudanos a reencontrarlas con sus familias. Entre todos podemos hacer la diferencia.
+              </p>
+              <div className={styles.lostPetsActions}>
+                <Link href="/mascotas/nuevo" className={styles.lostPetsBtnPrimary}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Publicar aviso
+                </Link>
+                <Link href="/mascotas" className={styles.lostPetsBtnSecondary}>
+                  Ver avisos
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </Link>
+              </div>
+            </div>
+            <div className={styles.lostPetsImageWrap}>
+              <Image
+                src="/images/perro_perdido.jpg"
+                alt="Perro perdido - ayudanos a encontrarlo"
+                width={3633}
+                height={5460}
+                className={styles.lostPetsImage}
+                sizes="(max-width: 768px) 100vw, 400px"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
     </>
   );
 }

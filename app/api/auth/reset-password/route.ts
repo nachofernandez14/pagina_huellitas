@@ -9,7 +9,7 @@ const EMAIL_MAX = 254;
 export async function POST(req: NextRequest) {
   // Rate limit: 3 requests per IP per 15 minutes
   const ip = getClientIp(req);
-  const rl = checkRateLimit(`reset-password:${ip}`, 3, 15 * 60 * 1000);
+  const rl = await checkRateLimit(`reset-password:${ip}`, 3, 15 * 60 * 1000);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Demasiados intentos. Esperá unos minutos e intentá nuevamente.' },

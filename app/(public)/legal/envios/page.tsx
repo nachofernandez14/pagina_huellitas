@@ -5,7 +5,7 @@ import styles from '../legal.module.css';
 export const metadata: Metadata = {
   title: 'Política de Envíos en Mendoza y Gran Mendoza',
   description:
-    'Envíos a domicilio en Mendoza, Guaymallén y Las Heras. Costos, plazos 24–48 hs y retiro en Rodeo de la Cruz. Huellitas Petshop.',
+    'Envíos a domicilio en Mendoza, Guaymallén y Las Heras. Costos, plazos mismo día o 24–48 hs y retiro en Rodeo de la Cruz. Huellitas Petshop.',
   alternates: { canonical: '/legal/envios' },
   openGraph: {
     title: 'Política de Envíos | Huellitas Petshop Mendoza',
@@ -56,7 +56,7 @@ export default function EnviosPage() {
           Realizamos entrega a domicilio en el área de cobertura. 
         </p>
         <ul>
-          <li><strong>Plazo:</strong> Los envíos se realizan dentro de las <strong>próximas 24 horas</strong> posteriores a la confirmación del pago.</li>
+          <li><strong>Plazo:</strong> Los envíos se realizan el <strong>mismo día</strong> o dentro de las <strong>próximas 24 a 48 horas</strong> (máximo 2 días) posteriores a la confirmación del pago, según la zona y el volumen de pedidos.</li>
           <li><strong>Comunicación:</strong> El repartidor se comunicará con vos por WhatsApp para avisarte cuándo sale a entregar tu pedido y coordinar el horario.</li>
           <li><strong>Seguimiento en tiempo real:</strong> Estarás en contacto directo para saber exactamente cuándo llegará tu pedido.</li>
         </ul>

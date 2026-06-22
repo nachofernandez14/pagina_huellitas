@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limit: max 3 attempts per IP per hour
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`subscribe:${ip}`, 3, 60 * 60 * 1000);
+    const rl = await checkRateLimit(`subscribe:${ip}`, 3, 60 * 60 * 1000);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: 'Demasiadas solicitudes. Intentá más tarde.' },

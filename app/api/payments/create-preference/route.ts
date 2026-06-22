@@ -16,7 +16,7 @@ function generateCancelToken(orderId: string, preferenceId: string): string {
 export async function POST(req: NextRequest) {
   // Rate limiting: max 15 payment preference requests per IP per 10 minutes
   const ip = getClientIp(req);
-  const rl = checkRateLimit(`payments:${ip}`, 15, 10 * 60 * 1000);
+  const rl = await checkRateLimit(`payments:${ip}`, 15, 10 * 60 * 1000);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Demasiadas solicitudes. Esperá unos minutos e intentá nuevamente.' },

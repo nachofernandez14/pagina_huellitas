@@ -157,6 +157,27 @@ export interface Expense {
   updated_at: string;
 }
 
+// ============================================================
+// LOST & FOUND PETS TYPES
+// ============================================================
+
+export type PetType = 'perdida' | 'encontrada';
+export type PetStatus = 'activo' | 'resuelto';
+
+export interface LostFoundPet {
+  id: string;
+  user_id: string;
+  type: PetType;
+  name: string;
+  description: string;
+  zone: string;
+  image_url?: string | null;
+  status: PetStatus;
+  created_at: string;
+  updated_at: string;
+  profile?: Pick<Profile, 'nombre' | 'telefono'>;
+}
+
 export interface CartContextValue {
   items: CartItem[];
   total: number;

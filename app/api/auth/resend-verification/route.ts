@@ -8,7 +8,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const rl = checkRateLimit(`resend-verification:${ip}`, 3, 15 * 60 * 1000);
+  const rl = await checkRateLimit(`resend-verification:${ip}`, 3, 15 * 60 * 1000);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Demasiados intentos. Esperá unos minutos.' },

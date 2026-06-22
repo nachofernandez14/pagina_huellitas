@@ -17,6 +17,8 @@ const CATEGORIES = [
   { label: 'Accesorios', href: '/categoria/accesorios' },
 ];
 
+const PETS_NAV = { label: 'Mascotas Perdidas', href: '/mascotas' };
+
 const MARCAS_NAV = [
   { nombre: 'Agility',       img: '/images/marcas/agility.png'        },
   { nombre: 'Biomax',        img: '/images/marcas/biomax.jpeg'         },
@@ -218,7 +220,7 @@ export default function Navbar() {
               className={`${styles.catLink} ${pathname === '/productos' && !searchParams.get('categoria') ? styles.catLinkActive : ''}`}
             >Todos</Link>
 
-            {/* Marcas dropdown */}
+{/* Marcas dropdown */}
             <div
               className={styles.marcasNavItem}
               ref={marcasRef}
@@ -258,6 +260,10 @@ export default function Navbar() {
                 </div>
               )}
             </div>
+
+            <Link href={PETS_NAV.href} className={styles.petsNavLink}>
+              {PETS_NAV.label}
+            </Link>
           </div>
         </nav>
 
@@ -272,6 +278,8 @@ export default function Navbar() {
               </li>
             ))}
             <li><Link href="/productos" onClick={() => setMenuOpen(false)}>Todos los productos</Link></li>
+            <li className={styles.mobileMenuDivider} />
+            <li><Link href={PETS_NAV.href} onClick={() => setMenuOpen(false)} className={styles.mobilePetsLink}>{PETS_NAV.label}</Link></li>
             <li className={styles.mobileMenuDivider} />
             <li><Link href="/perfil" onClick={() => setMenuOpen(false)}>Mi cuenta</Link></li>
             <li><Link href="/perfil" onClick={() => setMenuOpen(false)}>Mis pedidos</Link></li>

@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 // POST /api/auth/confirm-email — confirma el email del usuario autenticado
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const rl = checkRateLimit(`confirm-email:${ip}`, 5, 15 * 60 * 1000);
+  const rl = await checkRateLimit(`confirm-email:${ip}`, 5, 15 * 60 * 1000);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Demasiados intentos. Esperá unos minutos.' },

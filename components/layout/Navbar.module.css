@@ -374,6 +374,35 @@
   line-height: 1.2;
 }
 
+/* Pets nav link — right side of catNav */
+.petsNavLink {
+  margin-left: auto;
+  background: var(--accent);
+  color: var(--white);
+  text-decoration: none;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: var(--transition);
+  flex-shrink: 0;
+  animation: petsPulse 2s ease-in-out infinite;
+}
+
+.petsNavLink:hover {
+  background: #e07a3e;
+  transform: scale(1.04);
+  box-shadow: 0 0 16px rgba(244, 138, 84, 0.5);
+  color: var(--white);
+}
+
+@keyframes petsPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 138, 84, 0.6); }
+  50%      { box-shadow: 0 0 0 6px rgba(244, 138, 84, 0); }
+}
+
 /* Hamburger */
 .hamburger {
   display: none;
@@ -408,6 +437,11 @@
   transition: var(--transition);
 }
 .mobileMenu li a:hover { background: rgba(255,255,255,0.1); }
+
+.mobilePetsLink {
+  color: var(--accent) !important;
+  font-weight: 700 !important;
+}
 
 .mobileMenuDivider {
   height: 1px;

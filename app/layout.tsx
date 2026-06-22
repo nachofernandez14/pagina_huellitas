@@ -34,8 +34,13 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: '/images/favicon.png',
-    apple: '/images/favicon.png',
+    icon: [
+      { url: '/images/favicon-48x48.png', sizes: '48x48', type: 'image/png' },
+      { url: '/images/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+      { url: '/images/favicon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/images/favicon.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: '/images/favicon-192x192.png',
   },
   openGraph: {
     title: 'Huellitas Petshop | Alimentos y Accesorios para Mascotas en Mendoza',

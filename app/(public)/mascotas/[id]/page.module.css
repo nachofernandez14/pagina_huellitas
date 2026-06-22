@@ -1,0 +1,153 @@
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--gray);
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  transition: var(--transition);
+}
+.back:hover {
+  color: var(--green-dark);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5rem;
+  align-items: start;
+}
+
+.imageCol {
+  position: sticky;
+  top: 2rem;
+}
+
+.noImage {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: #f5f5f5;
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+.infoCol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.badgeWrap {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.85rem;
+  border-radius: 99px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.badgeLost {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.badgeFound {
+  background: #d1fae5;
+  color: #059669;
+}
+.badgeResolved {
+  background: var(--gray-light);
+  color: var(--gray);
+}
+
+.name {
+  font-family: var(--font-title);
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  color: var(--dark);
+  line-height: 1.2;
+}
+
+.detailRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--gray);
+  font-size: 0.9rem;
+}
+.detailRow svg {
+  flex-shrink: 0;
+  color: var(--green-dark);
+}
+
+.divider {
+  height: 1px;
+  background: var(--gray-light);
+  margin: 0.5rem 0;
+}
+
+.sectionTitle {
+  font-family: var(--font-title);
+  font-size: 1.1rem;
+  color: var(--dark);
+}
+
+.description {
+  color: var(--gray);
+  line-height: 1.7;
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+}
+
+.contactCard {
+  background: #f3fdf7;
+  border: 1px solid #d1fae5;
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.contactRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--dark);
+  text-decoration: none;
+}
+.contactRow svg {
+  flex-shrink: 0;
+  color: var(--green-dark);
+}
+.contactRow:hover {
+  color: var(--green-dark);
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .imageCol {
+    position: static;
+  }
+}

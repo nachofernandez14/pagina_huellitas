@@ -14,7 +14,7 @@ function generateCancelToken(orderId: string, preferenceId: string): string {
 export async function POST(req: NextRequest) {
   // Rate limiting: max 10 cancel requests per IP per minute
   const ip = getClientIp(req);
-  const rl = checkRateLimit(`cancel-order:${ip}`, 10, 60 * 1000);
+  const rl = await checkRateLimit(`cancel-order:${ip}`, 10, 60 * 1000);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Demasiadas solicitudes' },

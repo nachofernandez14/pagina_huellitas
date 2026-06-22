@@ -96,9 +96,16 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Protect pet creation route
+  if (request.nextUrl.pathname === '/mascotas/nuevo') {
+    if (!user) {
+      return NextResponse.redirect(new URL('/login?redirect=/mascotas/nuevo', request.url));
+    }
+  }
+
   return supabaseResponse;
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/perfil/:path*', '/productos'],
+  matcher: ['/admin/:path*', '/perfil/:path*', '/productos', '/mascotas/nuevo', '/api/:path*'],
 };

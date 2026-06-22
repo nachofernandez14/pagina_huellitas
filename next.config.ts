@@ -12,11 +12,15 @@ const securityHeaders = [
   },
   {
     key: 'Cross-Origin-Resource-Policy',
-    value: 'same-origin',
+    value: 'cross-origin',
   },
   {
     key: 'Cross-Origin-Embedder-Policy',
-    value: 'require-corp',
+    value: 'unsafe-none',
+  },
+  {
+    key: 'Cross-Origin-Opener-Policy',
+    value: 'unsafe-none',
   },
   {
     key: 'Content-Security-Policy',

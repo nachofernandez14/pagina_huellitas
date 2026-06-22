@@ -134,6 +134,8 @@ main {
 .btn-accent:hover { opacity: 0.88; }
 .btn-ghost { background: transparent; color: var(--gray); border-color: transparent; }
 .btn-ghost:hover { background: var(--gray-light); }
+.btn-danger { background: var(--error); color: var(--white); border-color: var(--error); }
+.btn-danger:hover { background: #c53030; border-color: #c53030; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Cards ────────────────────────────────────────────────── */

@@ -5,7 +5,7 @@ import { verifyTurnstileToken } from '@/lib/turnstile';
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const rl = checkRateLimit(`login:${ip}`, 5, 15 * 60 * 1000);
+  const rl = await checkRateLimit(`login:${ip}`, 5, 15 * 60 * 1000);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Demasiados intentos. Esperá unos minutos e intentá nuevamente.' },

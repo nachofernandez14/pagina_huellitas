@@ -40,6 +40,7 @@ export default function ProductosAdmin() {
   const flash = (m: string) => setMsg(m);
 
   const load = useCallback(async (p: number = 1) => {
+    setPage(p);
     setLoading(true);
     const offset = (p - 1) * PAGE_SIZE;
     const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(offset), activo: 'all' });
