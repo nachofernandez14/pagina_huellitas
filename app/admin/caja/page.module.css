@@ -48,7 +48,7 @@
 .totalRegValue { border-top: 1px solid #d1d5db; padding-top: 0.3rem; margin-top: 0.2rem; }
 
 /* Cuadre grid */
-.cuadreGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.cuadreGrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
 .cuadreItem { display: flex; flex-direction: column; gap: 0.25rem; }
 .cuadreItem label { font-size: 0.78rem; font-weight: 600; color: var(--dark); }
 .cuadreItem input { width: 100%; }
