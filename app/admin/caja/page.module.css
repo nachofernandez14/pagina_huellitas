@@ -35,12 +35,33 @@
 
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
 
+/* Section box */
+.sectionBox { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1rem 1.25rem; }
+.sectionTitle { font-size: 0.85rem; font-weight: 700; color: var(--dark); margin: 0 0 0.15rem; }
+.sectionDesc { font-size: 0.72rem; color: var(--gray); margin: 0 0 0.75rem; }
+
+/* Recorded sales grid */
+.registradasGrid { display: grid; grid-template-columns: 1fr auto; gap: 0.3rem 1rem; font-size: 0.85rem; }
+.registradasGrid span { color: var(--gray); }
+.registradasGrid strong { text-align: right; }
+.totalRegLabel { font-weight: 600; color: var(--dark) !important; border-top: 1px solid #d1d5db; padding-top: 0.3rem; margin-top: 0.2rem; }
+.totalRegValue { border-top: 1px solid #d1d5db; padding-top: 0.3rem; margin-top: 0.2rem; }
+
+/* Cuadre grid */
+.cuadreGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.cuadreItem { display: flex; flex-direction: column; gap: 0.25rem; }
+.cuadreItem label { font-size: 0.78rem; font-weight: 600; color: var(--dark); }
+.cuadreItem input { width: 100%; }
+.diffLine { font-size: 0.72rem; color: var(--gray); display: flex; justify-content: space-between; align-items: center; }
+.diffPos { color: var(--green-dark); font-weight: 700; }
+.diffNeg { color: #dc2626; font-weight: 700; }
+
 /* Summary box inside modal */
 .resumen { background: #f0fdf4; border: 1px solid #c2e8cc; border-radius: var(--radius-sm); padding: 1rem 1.25rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
 .resumen span { font-size: 0.82rem; color: var(--gray); }
 .resumen strong { font-size: 0.88rem; color: var(--dark); text-align: right; }
 .resumenTotal { grid-column: 1 / -1; border-top: 1px solid #c2e8cc; padding-top: 0.5rem; margin-top: 0.25rem; display: flex; justify-content: space-between; font-weight: 700; }
 .resumenTotal span { color: var(--dark); }
-.resumenTotal strong { color: var(--green-dark); font-size: 1rem; }
+.resumenTotal strong { font-size: 1rem; }
 
 .toast { padding: 0.75rem 1rem; border-radius: var(--radius-sm); background: rgba(1,162,41,0.1); border: 1px solid rgba(1,162,41,0.3); margin-bottom: 1rem; font-size: 0.875rem; }

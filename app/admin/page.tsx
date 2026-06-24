@@ -6,7 +6,6 @@ import styles from './page.module.css';
 
 interface Stats {
   totalHoy: number;
-  totalCajaHoy: number;
   ventasHoyWeb: number;
   ventasHoyLocal: number;
   valorEnStock: number;
@@ -224,14 +223,7 @@ export default function AdminDashboard() {
               </div>
               <div className={styles.kpiText}>
                 <div className={styles.kpiValue}>{fmt(stats?.totalHoy ?? 0)}</div>
-                <div className={styles.kpiLabel}>
-                  Ventas hoy
-                  {(stats?.totalCajaHoy ?? 0) > 0 && (
-                    <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', fontWeight: 400, marginTop: '2px' }}>
-                      incl. {fmt(stats!.totalCajaHoy)} de caja
-                    </span>
-                  )}
-                </div>
+                <div className={styles.kpiLabel}>Ventas hoy</div>
               </div>
             </div>
 

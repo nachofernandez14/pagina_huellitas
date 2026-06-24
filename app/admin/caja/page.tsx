@@ -14,12 +14,17 @@ interface CajaEntry {
   notas: string | null;
 }
 
+interface VentasHoy {
+  [formaPago: string]: number;
+}
+
 const EMPTY_FORM = {
   fecha: new Date().toISOString().split('T')[0],
   saldo_inicial: '',
   ventas_efectivo: '',
   ventas_mercadopago: '',
   ventas_tarjeta: '',
+  ventas_transferencia: '',
   notas: '',
 };
 
@@ -27,12 +32,8 @@ function fmt(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
 }
 
-function totalVentas(e: CajaEntry) {
+function totalVentasCaja(e: CajaEntry) {
   return e.ventas_efectivo + e.ventas_mercadopago + e.ventas_tarjeta + e.ventas_transferencia;
-}
-
-function saldoFinal(e: CajaEntry) {
-  return e.saldo_inicial + e.ventas_efectivo;
 }
 
 export default function CajaPage() {
@@ -42,14 +43,25 @@ export default function CajaPage() {
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+  const [ventasHoy, setVentasHoy] = useState<VentasHoy>({});
   const downTarget = useRef<EventTarget | null>(null);
 
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 4000); };
 
   const load = useCallback(async () => {
     setLoading(true);
-    const r = await fetch('/api/admin/caja');
-    if (r.ok) setEntries(await r.json());
+    const r = await fetch('/api/admin/caja?ventas=true');
+    if (r.ok) {
+      const json = await r.json();
+      // New response shape with ?ventas=true includes { entries, ventasHoy }
+      if (json.entries) {
+        setEntries(json.entries);
+        setVentasHoy(json.ventasHoy ?? {});
+      } else {
+        setEntries(json);
+        setVentasHoy({});
+      }
+    }
     setLoading(false);
   }, []);
 
@@ -58,14 +70,33 @@ export default function CajaPage() {
   const setField = (k: keyof typeof EMPTY_FORM, v: string) =>
     setForm((prev) => ({ ...prev, [k]: v }));
 
-  // Totales del formulario en tiempo real
-  const formTotal =
-    (parseFloat(form.ventas_efectivo) || 0) +
-    (parseFloat(form.ventas_mercadopago) || 0) +
-    (parseFloat(form.ventas_tarjeta) || 0);
+  // Recorded sales from orders (mapped to caja keys)
+  const ventasRegistradas = {
+    efectivo: ventasHoy['efectivo'] ?? 0,
+    mp: (ventasHoy['mp'] ?? 0) + (ventasHoy['mercadopago'] ?? 0),
+    tarjeta: ventasHoy['tarjeta'] ?? 0,
+    transferencia: ventasHoy['transferencia'] ?? 0,
+    otro: ventasHoy['otro'] ?? 0,
+  };
+  const totalRegistrado = ventasRegistradas.efectivo + ventasRegistradas.mp + ventasRegistradas.tarjeta + ventasRegistradas.transferencia;
 
-  const formSaldoFinal =
-    (parseFloat(form.saldo_inicial) || 0) + (parseFloat(form.ventas_efectivo) || 0);
+  // Counted amounts from form inputs
+  const counted = {
+    efectivo: parseFloat(form.ventas_efectivo) || 0,
+    mp: parseFloat(form.ventas_mercadopago) || 0,
+    tarjeta: parseFloat(form.ventas_tarjeta) || 0,
+    transferencia: parseFloat(form.ventas_transferencia) || 0,
+  };
+  const totalContado = counted.efectivo + counted.mp + counted.tarjeta + counted.transferencia;
+
+  // Differences
+  const diferencia = {
+    efectivo: counted.efectivo - ventasRegistradas.efectivo,
+    mp: counted.mp - ventasRegistradas.mp,
+    tarjeta: counted.tarjeta - ventasRegistradas.tarjeta,
+    transferencia: counted.transferencia - ventasRegistradas.transferencia,
+  };
+  const diferenciaTotal = totalContado - totalRegistrado;
 
   const handleSave = async () => {
     setSaving(true);
@@ -75,10 +106,10 @@ export default function CajaPage() {
       body: JSON.stringify({
         fecha: form.fecha,
         saldo_inicial: parseFloat(form.saldo_inicial) || 0,
-        ventas_efectivo: parseFloat(form.ventas_efectivo) || 0,
-        ventas_mercadopago: parseFloat(form.ventas_mercadopago) || 0,
-        ventas_tarjeta: parseFloat(form.ventas_tarjeta) || 0,
-        ventas_transferencia: 0,
+        ventas_efectivo: counted.efectivo,
+        ventas_mercadopago: counted.mp,
+        ventas_tarjeta: counted.tarjeta,
+        ventas_transferencia: counted.transferencia,
         notas: form.notas || null,
       }),
     });
@@ -97,12 +128,11 @@ export default function CajaPage() {
   const today = new Date().toISOString().split('T')[0];
   const thisMonth = today.slice(0, 7);
   const monthEntries = entries.filter((e) => e.fecha.startsWith(thisMonth));
-  const totalMes = monthEntries.reduce((s, e) => s + totalVentas(e), 0);
+  const totalMes = monthEntries.reduce((s, e) => s + totalVentasCaja(e), 0);
   const totalEfectivoMes = monthEntries.reduce((s, e) => s + e.ventas_efectivo, 0);
   const totalMpMes = monthEntries.reduce((s, e) => s + e.ventas_mercadopago, 0);
 
   const openNew = () => {
-    // Si ya existe entrada de hoy, pre-llenar
     const existing = entries.find((e) => e.fecha === today);
     if (existing) {
       setForm({
@@ -111,6 +141,7 @@ export default function CajaPage() {
         ventas_efectivo: String(existing.ventas_efectivo),
         ventas_mercadopago: String(existing.ventas_mercadopago),
         ventas_tarjeta: String(existing.ventas_tarjeta),
+        ventas_transferencia: String(existing.ventas_transferencia),
         notas: existing.notas ?? ''
       });
     } else {
@@ -136,7 +167,7 @@ export default function CajaPage() {
       {/* KPI strip */}
       <div className={styles.kpiStrip}>
         <div className={`${styles.kpi} ${styles.kpiGreen}`}>
-          <span>Total vendido este mes</span>
+          <span>Total contado del mes</span>
           <strong>{fmt(totalMes)}</strong>
         </div>
         <div className={styles.kpi}>
@@ -163,11 +194,11 @@ export default function CajaPage() {
               <tr>
                 <th>Fecha</th>
                 <th>Saldo inicial</th>
-                <th>Efectivo</th>
+                <th>Efectivo contado</th>
                 <th>Billetera virtual</th>
                 <th>Tarjeta</th>
-                <th>Total vendido</th>
-                <th>Saldo final caja</th>
+                <th>Transferencia</th>
+                <th>Total contado</th>
                 <th>Notas</th>
               </tr>
             </thead>
@@ -183,8 +214,8 @@ export default function CajaPage() {
                   <td>{fmt(e.ventas_efectivo)}</td>
                   <td>{fmt(e.ventas_mercadopago)}</td>
                   <td>{fmt(e.ventas_tarjeta)}</td>
-                  <td className={styles.totalCell}>{fmt(totalVentas(e))}</td>
-                  <td>{fmt(saldoFinal(e))}</td>
+                  <td>{fmt(e.ventas_transferencia)}</td>
+                  <td className={styles.totalCell}>{fmt(totalVentasCaja(e))}</td>
                   <td className={styles.notasCell}>{e.notas ?? '—'}</td>
                 </tr>
               ))}
@@ -221,68 +252,124 @@ export default function CajaPage() {
                 <input type="date" value={form.fecha} onChange={(e) => setField('fecha', e.target.value)} />
               </div>
 
-              <div className="form-group">
-                <label>Saldo inicial (dinero en caja al abrir)</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={form.saldo_inicial}
-                  onChange={(e) => setField('saldo_inicial', e.target.value)}
-                  onWheel={(e) => e.currentTarget.blur()}
-                  onFocus={(e) => e.target.select()}
-                  placeholder="0"
-                />
+              {/* Ventas registradas del día (auto) */}
+              <div className={styles.sectionBox}>
+                <h3 className={styles.sectionTitle}>Ventas registradas del día</h3>
+                <p className={styles.sectionDesc}>Estas ventas ya están cargadas en el sistema. Se restan automáticamente.</p>
+                <div className={styles.registradasGrid}>
+                  <span>Efectivo</span><strong>{fmt(ventasRegistradas.efectivo)}</strong>
+                  <span>Mercado Pago</span><strong>{fmt(ventasRegistradas.mp)}</strong>
+                  <span>Tarjeta</span><strong>{fmt(ventasRegistradas.tarjeta)}</strong>
+                  <span>Transferencia</span><strong>{fmt(ventasRegistradas.transferencia)}</strong>
+                  <span className={styles.totalRegLabel}>Total registrado</span>
+                  <strong className={styles.totalRegValue}>{fmt(totalRegistrado)}</strong>
+                </div>
               </div>
 
-              <div className={styles.grid2}>
+              {/* Cuadre de caja - counted amounts */}
+              <div className={styles.sectionBox}>
+                <h3 className={styles.sectionTitle}>Cuadre de caja</h3>
+                <p className={styles.sectionDesc}>Ingresá lo que contás / recibiste. La diferencia se calcula automáticamente.</p>
+
                 <div className="form-group">
-                  <label>Ventas en efectivo</label>
+                  <label>Saldo inicial (dinero en caja al abrir)</label>
                   <input
                     type="number"
                     min={0}
-                    value={form.ventas_efectivo}
-                    onChange={(e) => setField('ventas_efectivo', e.target.value)}
-                    onWheel={(e) => e.currentTarget.blur()}
-                    onFocus={(e) => e.target.select()}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Billetera virtual</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.ventas_mercadopago}
-                    onChange={(e) => setField('ventas_mercadopago', e.target.value)}
-                    onWheel={(e) => e.currentTarget.blur()}
-                    onFocus={(e) => e.target.select()}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Ventas con tarjeta</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.ventas_tarjeta}
-                    onChange={(e) => setField('ventas_tarjeta', e.target.value)}
+                    value={form.saldo_inicial}
+                    onChange={(e) => setField('saldo_inicial', e.target.value)}
                     onWheel={(e) => e.currentTarget.blur()}
                     onFocus={(e) => e.target.select()}
                     placeholder="0"
                   />
                 </div>
 
+                <div className={styles.cuadreGrid}>
+                  <div className={styles.cuadreItem}>
+                    <label>Efectivo en caja</label>
+                    <input
+                      type="number" min={0}
+                      value={form.ventas_efectivo}
+                      onChange={(e) => setField('ventas_efectivo', e.target.value)}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      onFocus={(e) => e.target.select()}
+                      placeholder="0"
+                    />
+                    <div className={styles.diffLine}>
+                      Registrado: {fmt(ventasRegistradas.efectivo)}
+                      <span className={diferencia.efectivo >= 0 ? styles.diffPos : styles.diffNeg}>
+                        {diferencia.efectivo >= 0 ? '+' : ''}{fmt(diferencia.efectivo)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.cuadreItem}>
+                    <label>Billetera virtual (Mercado Pago)</label>
+                    <input
+                      type="number" min={0}
+                      value={form.ventas_mercadopago}
+                      onChange={(e) => setField('ventas_mercadopago', e.target.value)}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      onFocus={(e) => e.target.select()}
+                      placeholder="0"
+                    />
+                    <div className={styles.diffLine}>
+                      Registrado: {fmt(ventasRegistradas.mp)}
+                      <span className={diferencia.mp >= 0 ? styles.diffPos : styles.diffNeg}>
+                        {diferencia.mp >= 0 ? '+' : ''}{fmt(diferencia.mp)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.cuadreItem}>
+                    <label>Tarjeta</label>
+                    <input
+                      type="number" min={0}
+                      value={form.ventas_tarjeta}
+                      onChange={(e) => setField('ventas_tarjeta', e.target.value)}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      onFocus={(e) => e.target.select()}
+                      placeholder="0"
+                    />
+                    <div className={styles.diffLine}>
+                      Registrado: {fmt(ventasRegistradas.tarjeta)}
+                      <span className={diferencia.tarjeta >= 0 ? styles.diffPos : styles.diffNeg}>
+                        {diferencia.tarjeta >= 0 ? '+' : ''}{fmt(diferencia.tarjeta)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.cuadreItem}>
+                    <label>Transferencia</label>
+                    <input
+                      type="number" min={0}
+                      value={form.ventas_transferencia}
+                      onChange={(e) => setField('ventas_transferencia', e.target.value)}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      onFocus={(e) => e.target.select()}
+                      placeholder="0"
+                    />
+                    <div className={styles.diffLine}>
+                      Registrado: {fmt(ventasRegistradas.transferencia)}
+                      <span className={diferencia.transferencia >= 0 ? styles.diffPos : styles.diffNeg}>
+                        {diferencia.transferencia >= 0 ? '+' : ''}{fmt(diferencia.transferencia)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Resumen en tiempo real */}
+              {/* Resumen de cuadre */}
               <div className={styles.resumen}>
-                <span>Total vendido:</span>
-                <strong>{fmt(formTotal)}</strong>
-                <span>Saldo final en caja (efectivo):</span>
-                <strong>{fmt(formSaldoFinal)}</strong>
+                <span>Total contado:</span>
+                <strong>{fmt(totalContado)}</strong>
+                <span>Total registrado:</span>
+                <strong>{fmt(totalRegistrado)}</strong>
                 <div className={styles.resumenTotal}>
-                  <span>Total general del día</span>
-                  <strong>{fmt(formTotal)}</strong>
+                  <span>Diferencia total</span>
+                  <strong className={diferenciaTotal >= 0 ? styles.diffPos : styles.diffNeg}>
+                    {diferenciaTotal >= 0 ? '+' : ''}{fmt(diferenciaTotal)}
+                  </strong>
                 </div>
               </div>
 
@@ -291,7 +378,7 @@ export default function CajaPage() {
                 <input
                   value={form.notas}
                   onChange={(e) => setField('notas', e.target.value)}
-                  placeholder="Ej: faltó producto X, efectivo cuenta cuadra..."
+                  placeholder="Ej: faltó producto X, sobrante por vuelto..."
                 />
               </div>
             </div>

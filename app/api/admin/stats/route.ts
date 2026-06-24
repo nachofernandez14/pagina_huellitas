@@ -10,7 +10,7 @@ async function fetchAdminStats(today: string, sevenDaysAgo: string) {
 
   const admin = createAdminClient();
 
-  const [todaySales, lowStock, topProducts, weekSales, stockValue, cajaSemana] = await Promise.all([
+  const [todaySales, lowStock, topProducts, weekSales, stockValue] = await Promise.all([
     // Today's sales by channel
     admin
       .from('orders')
@@ -47,15 +47,9 @@ async function fetchAdminStats(today: string, sevenDaysAgo: string) {
       .eq('activo', true)
       .not('precio', 'is', null),
 
-    // Caja diaria — últimos 7 días
-    admin
-      .from('caja_diaria')
-      .select('fecha, ventas_efectivo, ventas_mercadopago, ventas_tarjeta, ventas_transferencia')
-      .gte('fecha', sevenDaysAgo)
-      .order('fecha', { ascending: true }),
   ]);
 
-  return { todaySales, lowStock, topProducts, weekSales, stockValue, cajaSemana };
+  return { todaySales, lowStock, topProducts, weekSales, stockValue };
 }
 
 // GET /api/admin/stats — dashboard metrics
@@ -66,7 +60,7 @@ export async function GET() {
   const today = new Date().toISOString().split('T')[0];
   const sevenDaysAgo = new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0];
 
-  const { todaySales, lowStock, topProducts, weekSales, stockValue, cajaSemana } =
+  const { todaySales, lowStock, topProducts, weekSales, stockValue } =
     await fetchAdminStats(today, sevenDaysAgo);
 
   // Aggregate today's totals from orders
@@ -77,41 +71,19 @@ export async function GET() {
   const ventasHoyWeb = paidOrders.filter((o) => !o.canal || o.canal === 'web').length;
   const ventasHoyLocal = paidOrders.filter((o) => o.canal === 'local').length;
 
-  // Aggregate today's caja diaria total
-  const cajaHoy = (cajaSemana.data ?? []).find((r) => r.fecha === today);
-  const totalCajaHoy = cajaHoy
-    ? Number(cajaHoy.ventas_efectivo ?? 0)
-      + Number(cajaHoy.ventas_mercadopago ?? 0)
-      + Number(cajaHoy.ventas_tarjeta ?? 0)
-      + Number(cajaHoy.ventas_transferencia ?? 0)
-    : 0;
-
-  const totalHoy = totalOrdenesHoy + totalCajaHoy;
+  const totalHoy = totalOrdenesHoy;
 
   const valorEnStock = (stockValue.data ?? []).reduce(
     (s, p) => s + (Number(p.precio) * Number(p.stock)), 0
   );
 
-  // Merge caja rows into weekSales as synthetic "local" entries so the chart shows them
-  const cajaRows = (cajaSemana.data ?? []).map((r) => ({
-    fecha: r.fecha,
-    canal: 'caja' as const,
-    cantidad_ventas: 1,
-    total_ventas:
-      Number(r.ventas_efectivo ?? 0)
-      + Number(r.ventas_mercadopago ?? 0)
-      + Number(r.ventas_tarjeta ?? 0)
-      + Number(r.ventas_transferencia ?? 0),
-  }));
-
   return NextResponse.json({
     totalHoy,
-    totalCajaHoy,
     ventasHoyWeb,
     ventasHoyLocal,
     valorEnStock,
     lowStock: lowStock.data ?? [],
     topProducts: topProducts.data ?? [],
-    weekSales: [...(weekSales.data ?? []), ...cajaRows],
+    weekSales: weekSales.data ?? [],
   });
 }
