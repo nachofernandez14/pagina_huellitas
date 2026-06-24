@@ -18,9 +18,21 @@ interface VentaDetalle {
   id: string;
   forma_pago: string;
   total: number;
-  productos: { nombre: string; quantity: number; precio: number }[];
+  productos: Record<string, unknown>[];
   guest_nombre: string | null;
   created_at: string;
+}
+
+function safeStr(v: unknown, fallback = ''): string {
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number') return String(v);
+  return fallback;
+}
+
+function safeNum(v: unknown, fallback = 0): number {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') return parseFloat(v) || fallback;
+  return fallback;
 }
 
 interface VentasHoy {
@@ -53,14 +65,15 @@ export default function CajaPage() {
   const [msg, setMsg] = useState('');
   const [ventasHoy, setVentasHoy] = useState<VentasHoy>({});
   const [detalleVentas, setDetalleVentas] = useState<VentaDetalle[]>([]);
-  const [isEditingExisting, setIsEditingExisting] = useState(false);
   const downTarget = useRef<EventTarget | null>(null);
 
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 4000); };
 
   const load = useCallback(async () => {
     setLoading(true);
-    const r = await fetch('/api/admin/caja?ventas=true');
+    // Pasar la fecha local del cliente para evitar desfase horario con el servidor
+    const localDate = new Date().toISOString().split('T')[0];
+    const r = await fetch(`/api/admin/caja?ventas=true&fecha=${localDate}`);
     if (r.ok) {
       const json = await r.json();
       if (json.entries) {
@@ -81,29 +94,29 @@ export default function CajaPage() {
   const setField = (k: keyof typeof EMPTY_FORM, v: string) =>
     setForm((prev) => ({ ...prev, [k]: v }));
 
-  // Recorded sales: "mp" se unifica con "transferencia"
-  const ventasRegistradas = {
+  // Bolsas registradas (ventas locales)
+  const bolsas = {
     efectivo: ventasHoy['efectivo'] ?? 0,
     transferencia: (ventasHoy['mp'] ?? 0) + (ventasHoy['mercadopago'] ?? 0) + (ventasHoy['transferencia'] ?? 0),
     tarjeta: ventasHoy['tarjeta'] ?? 0,
   };
-  const totalRegistrado = ventasRegistradas.efectivo + ventasRegistradas.transferencia + ventasRegistradas.tarjeta;
+  const totalBolsas = bolsas.efectivo + bolsas.transferencia + bolsas.tarjeta;
 
-  // Counted amounts from form inputs
-  const counted = {
+  // Total contado (lo que ingresa el admin)
+  const totalContado = {
     efectivo: parseFloat(form.ventas_efectivo) || 0,
     transferencia: parseFloat(form.ventas_transferencia) || 0,
     tarjeta: parseFloat(form.ventas_tarjeta) || 0,
   };
-  const totalContado = counted.efectivo + counted.transferencia + counted.tarjeta;
+  const sumaContado = totalContado.efectivo + totalContado.transferencia + totalContado.tarjeta;
 
-  // Differences
-  const diferencia = {
-    efectivo: counted.efectivo - ventasRegistradas.efectivo,
-    transferencia: counted.transferencia - ventasRegistradas.transferencia,
-    tarjeta: counted.tarjeta - ventasRegistradas.tarjeta,
+  // Alimento suelto = total contado - bolsas registradas
+  const suelto = {
+    efectivo: Math.max(0, totalContado.efectivo - bolsas.efectivo),
+    transferencia: Math.max(0, totalContado.transferencia - bolsas.transferencia),
+    tarjeta: Math.max(0, totalContado.tarjeta - bolsas.tarjeta),
   };
-  const diferenciaTotal = totalContado - totalRegistrado;
+  const totalSuelto = suelto.efectivo + suelto.transferencia + suelto.tarjeta;
 
   const handleSave = async () => {
     setSaving(true);
@@ -113,10 +126,10 @@ export default function CajaPage() {
       body: JSON.stringify({
         fecha: form.fecha,
         saldo_inicial: parseFloat(form.saldo_inicial) || 0,
-        ventas_efectivo: counted.efectivo,
+        ventas_efectivo: totalContado.efectivo,
         ventas_mercadopago: 0,
-        ventas_tarjeta: counted.tarjeta,
-        ventas_transferencia: counted.transferencia,
+        ventas_tarjeta: totalContado.tarjeta,
+        ventas_transferencia: totalContado.transferencia,
         notas: form.notas || null,
       }),
     });
@@ -139,7 +152,6 @@ export default function CajaPage() {
   const totalEfectivoMes = monthEntries.reduce((s, e) => s + e.ventas_efectivo, 0);
   const totalTransfMes = monthEntries.reduce((s, e) => s + e.ventas_transferencia, 0);
 
-  // Pre-fill form with recorded sales when opening a NEW entry
   const openNew = () => {
     const existing = entries.find((e) => e.fecha === today);
     if (existing) {
@@ -152,35 +164,12 @@ export default function CajaPage() {
         ventas_transferencia: String(transfTotal),
         notas: existing.notas ?? ''
       });
-      setIsEditingExisting(true);
     } else {
-      // Pre-fill with recorded sales from today
-      setForm({
-        fecha: today,
-        saldo_inicial: '',
-        ventas_efectivo: String(ventasRegistradas.efectivo || ''),
-        ventas_tarjeta: String(ventasRegistradas.tarjeta || ''),
-        ventas_transferencia: String(ventasRegistradas.transferencia || ''),
-        notas: '',
-      });
-      setIsEditingExisting(false);
+      setForm({ ...EMPTY_FORM, fecha: today });
     }
     setModal(true);
   };
 
-  // Auto-update form when ventasHoy data arrives (for new entries still open)
-  useEffect(() => {
-    if (modal && !isEditingExisting && Object.keys(ventasHoy).length > 0) {
-      setForm((prev) => ({
-        ...prev,
-        ventas_efectivo: String(ventasRegistradas.efectivo || ''),
-        ventas_tarjeta: String(ventasRegistradas.tarjeta || ''),
-        ventas_transferencia: String(ventasRegistradas.transferencia || ''),
-      }));
-    }
-  }, [ventasHoy]);
-
-  // Group detail ventas by forma_pago for display
   const detallesPorPago = {
     efectivo: detalleVentas.filter((v) => v.forma_pago === 'efectivo'),
     transferencia: detalleVentas.filter((v) => ['mp', 'mercadopago', 'transferencia'].includes(v.forma_pago ?? '')),
@@ -204,7 +193,7 @@ export default function CajaPage() {
       {/* KPI strip */}
       <div className={styles.kpiStrip}>
         <div className={`${styles.kpi} ${styles.kpiGreen}`}>
-          <span>Total contado del mes</span>
+          <span>Total recaudado del mes</span>
           <strong>{fmt(totalMes)}</strong>
         </div>
         <div className={styles.kpi}>
@@ -234,7 +223,7 @@ export default function CajaPage() {
                 <th>Efectivo</th>
                 <th>Transferencias</th>
                 <th>Tarjeta</th>
-                <th>Total contado</th>
+                <th>Total recaudado</th>
                 <th>Notas</th>
               </tr>
             </thead>
@@ -287,19 +276,19 @@ export default function CajaPage() {
                 <input type="date" value={form.fecha} onChange={(e) => setField('fecha', e.target.value)} />
               </div>
 
-              {/* Ventas registradas del día con productos */}
+              {/* Bolsas vendidas (ventas locales registradas) */}
               <div className={styles.sectionBox}>
-                <h3 className={styles.sectionTitle}>Ventas registradas del día</h3>
-                <p className={styles.sectionDesc}>Estas ventas ya están cargadas en el sistema. Los montos se pre-cargan abajo para el cuadre.</p>
+                <h3 className={styles.sectionTitle}>Bolsas vendidas (registradas en Ventas)</h3>
+                <p className={styles.sectionDesc}>Estas ventas ya están cargadas y se restan automáticamente del total que ingreses abajo.</p>
 
                 {(['efectivo', 'transferencia', 'tarjeta'] as const).map((tipo) => {
                   const detalles = detallesPorPago[tipo];
-                  if (!detalles.length && ventasRegistradas[tipo] === 0) return null;
+                  if (!detalles.length && bolsas[tipo] === 0) return null;
                   return (
                     <div key={tipo} className={styles.detalleGrupo}>
                       <div className={styles.detalleHeader}>
                         <span className={styles.detalleLabel}>{tipo === 'transferencia' ? 'Transferencias / MP' : tipo === 'efectivo' ? 'Efectivo' : 'Tarjeta'}</span>
-                        <span className={styles.detalleTotal}>{fmt(ventasRegistradas[tipo])}</span>
+                        <span className={styles.detalleTotal}>{fmt(bolsas[tipo])}</span>
                       </div>
                       {detalles.length > 0 && (
                         <div className={styles.detalleItems}>
@@ -314,11 +303,16 @@ export default function CajaPage() {
                               </div>
                               {(v.productos ?? []).length > 0 && (
                                 <div className={styles.detalleProductos}>
-                                  {v.productos.map((p, i) => (
-                                    <span key={i} className={styles.detalleProducto}>
-                                      {p.nombre} x{p.quantity} <em>{fmt(p.precio * p.quantity)}</em>
-                                    </span>
-                                  ))}
+                                  {v.productos.map((p, i) => {
+                                    const prodName = safeStr(p.nombre);
+                                    const prodQty = safeNum(p.quantity, 1);
+                                    const prodPrice = safeNum(p.precio);
+                                    return (
+                                      <span key={i} className={styles.detalleProducto}>
+                                        {prodName}{prodQty > 1 ? ` x${prodQty}` : ''} <em>{fmt(prodPrice * prodQty)}</em>
+                                      </span>
+                                    );
+                                  })}
                                 </div>
                               )}
                             </div>
@@ -329,15 +323,15 @@ export default function CajaPage() {
                   );
                 })}
 
-                {totalRegistrado > 0 && (
+                {totalBolsas > 0 && (
                   <div className={styles.totalRegistradoRow}>
-                    <span>Total registrado:</span>
-                    <strong>{fmt(totalRegistrado)}</strong>
+                    <span>Total bolsas vendidas:</span>
+                    <strong>{fmt(totalBolsas)}</strong>
                   </div>
                 )}
-                {totalRegistrado === 0 && (
+                {totalBolsas === 0 && (
                   <p style={{ fontSize: '0.8rem', color: 'var(--gray)', margin: '0.5rem 0 0' }}>
-                    Sin ventas registradas hoy.
+                    Sin ventas de bolsas registradas hoy.
                   </p>
                 )}
               </div>
@@ -345,7 +339,7 @@ export default function CajaPage() {
               {/* Cuadre de caja */}
               <div className={styles.sectionBox}>
                 <h3 className={styles.sectionTitle}>Cuadre de caja</h3>
-                <p className={styles.sectionDesc}>Los montos ya están precargados con las ventas registradas. Ajustalos si lo contado es diferente.</p>
+                <p className={styles.sectionDesc}>Ingresá el TOTAL recaudado en cada método (bolsas + alimento suelto). El sistema calcula el alimento suelto.</p>
 
                 <div className="form-group">
                   <label>Saldo inicial (dinero en caja al abrir)</label>
@@ -362,7 +356,7 @@ export default function CajaPage() {
 
                 <div className={styles.cuadreGrid}>
                   <div className={styles.cuadreItem}>
-                    <label>Efectivo en caja</label>
+                    <label>Efectivo (total recaudado)</label>
                     <input
                       type="number" min={0}
                       value={form.ventas_efectivo}
@@ -371,16 +365,14 @@ export default function CajaPage() {
                       onFocus={(e) => e.target.select()}
                       placeholder="0"
                     />
-                    <div className={styles.diffLine}>
-                      <span>Registrado: {fmt(ventasRegistradas.efectivo)}</span>
-                      <span className={diferencia.efectivo >= 0 ? styles.diffPos : styles.diffNeg}>
-                        {diferencia.efectivo >= 0 ? '+' : ''}{fmt(diferencia.efectivo)}
-                      </span>
+                    <div className={styles.balanceLine}>
+                      <span>− Bolsas: {fmt(bolsas.efectivo)}</span>
+                      <span className={styles.sueldoTag}>= Alimento suelto: {fmt(suelto.efectivo)}</span>
                     </div>
                   </div>
 
                   <div className={styles.cuadreItem}>
-                    <label>Transferencias / MP</label>
+                    <label>Transferencias / MP (total recibido)</label>
                     <input
                       type="number" min={0}
                       value={form.ventas_transferencia}
@@ -389,16 +381,14 @@ export default function CajaPage() {
                       onFocus={(e) => e.target.select()}
                       placeholder="0"
                     />
-                    <div className={styles.diffLine}>
-                      <span>Registrado: {fmt(ventasRegistradas.transferencia)}</span>
-                      <span className={diferencia.transferencia >= 0 ? styles.diffPos : styles.diffNeg}>
-                        {diferencia.transferencia >= 0 ? '+' : ''}{fmt(diferencia.transferencia)}
-                      </span>
+                    <div className={styles.balanceLine}>
+                      <span>− Bolsas: {fmt(bolsas.transferencia)}</span>
+                      <span className={styles.sueldoTag}>= Alimento suelto: {fmt(suelto.transferencia)}</span>
                     </div>
                   </div>
 
                   <div className={styles.cuadreItem}>
-                    <label>Tarjeta</label>
+                    <label>Tarjeta (total recaudado)</label>
                     <input
                       type="number" min={0}
                       value={form.ventas_tarjeta}
@@ -407,11 +397,9 @@ export default function CajaPage() {
                       onFocus={(e) => e.target.select()}
                       placeholder="0"
                     />
-                    <div className={styles.diffLine}>
-                      <span>Registrado: {fmt(ventasRegistradas.tarjeta)}</span>
-                      <span className={diferencia.tarjeta >= 0 ? styles.diffPos : styles.diffNeg}>
-                        {diferencia.tarjeta >= 0 ? '+' : ''}{fmt(diferencia.tarjeta)}
-                      </span>
+                    <div className={styles.balanceLine}>
+                      <span>− Bolsas: {fmt(bolsas.tarjeta)}</span>
+                      <span className={styles.sueldoTag}>= Alimento suelto: {fmt(suelto.tarjeta)}</span>
                     </div>
                   </div>
                 </div>
@@ -419,15 +407,13 @@ export default function CajaPage() {
 
               {/* Resumen */}
               <div className={styles.resumen}>
-                <span>Total contado:</span>
-                <strong>{fmt(totalContado)}</strong>
-                <span>Total registrado:</span>
-                <strong>{fmt(totalRegistrado)}</strong>
+                <span>Total recaudado:</span>
+                <strong>{fmt(sumaContado)}</strong>
+                <span>Total bolsas vendidas:</span>
+                <strong>{fmt(totalBolsas)}</strong>
                 <div className={styles.resumenTotal}>
-                  <span>Diferencia total</span>
-                  <strong className={diferenciaTotal >= 0 ? styles.diffPos : styles.diffNeg}>
-                    {diferenciaTotal >= 0 ? '+' : ''}{fmt(diferenciaTotal)}
-                  </strong>
+                  <span>Total alimento suelto</span>
+                  <strong className={styles.sueldoFinal}>{fmt(totalSuelto)}</strong>
                 </div>
               </div>
 

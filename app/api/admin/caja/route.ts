@@ -26,8 +26,9 @@ export async function GET(req: NextRequest) {
   // Si se solicita, incluir ventas registradas de HOY agrupadas por forma_pago
   // Solo incluye: ventas locales (no canceladas) + pedidos web pagos
   if (incluirVentas) {
-    const today = new Date().toISOString().split('T')[0];
-    const { data: ventas } = await admin
+    // Usar la fecha pasada por el cliente (para coincidir con su zona horaria)
+    const today = req.nextUrl.searchParams.get('fecha') || new Date().toISOString().split('T')[0];
+    const { data: ventas, error: errVentas } = await admin
       .from('orders')
       .select('id, forma_pago, total, canal, estado, productos, guest_nombre, created_at')
       .gte('created_at', `${today}T00:00:00`)
@@ -43,16 +44,18 @@ export async function GET(req: NextRequest) {
       created_at: string;
     }> = [];
 
-    (ventas ?? []).forEach((v) => {
-      const incluir =
-        (v.canal === 'local' && v.estado !== 'cancelled') ||
-        (!v.canal && v.estado === 'paid') ||
-        (v.canal === 'web' && v.estado === 'paid');
-      if (!incluir) return;
-      const fp = v.forma_pago || 'otro';
-      ventasHoy[fp] = (ventasHoy[fp] ?? 0) + Number(v.total);
-      detalleVentas.push(v);
-    });
+    if (!errVentas) {
+      (ventas ?? []).forEach((v) => {
+        const incluir =
+          (v.canal === 'local' && v.estado !== 'cancelled') ||
+          (!v.canal && v.estado === 'paid') ||
+          (v.canal === 'web' && v.estado === 'paid');
+        if (!incluir) return;
+        const fp = v.forma_pago || 'otro';
+        ventasHoy[fp] = (ventasHoy[fp] ?? 0) + Number(v.total);
+        detalleVentas.push(v);
+      });
+    }
 
     return NextResponse.json({ entries: data, ventasHoy, detalleVentas });
   }
