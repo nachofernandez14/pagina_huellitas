@@ -14,6 +14,15 @@ interface CajaEntry {
   notas: string | null;
 }
 
+interface VentaDetalle {
+  id: string;
+  forma_pago: string;
+  total: number;
+  productos: { nombre: string; quantity: number; precio: number }[];
+  guest_nombre: string | null;
+  created_at: string;
+}
+
 interface VentasHoy {
   [formaPago: string]: number;
 }
@@ -43,6 +52,8 @@ export default function CajaPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [ventasHoy, setVentasHoy] = useState<VentasHoy>({});
+  const [detalleVentas, setDetalleVentas] = useState<VentaDetalle[]>([]);
+  const [isEditingExisting, setIsEditingExisting] = useState(false);
   const downTarget = useRef<EventTarget | null>(null);
 
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 4000); };
@@ -55,9 +66,11 @@ export default function CajaPage() {
       if (json.entries) {
         setEntries(json.entries);
         setVentasHoy(json.ventasHoy ?? {});
+        setDetalleVentas(json.detalleVentas ?? []);
       } else {
         setEntries(json);
         setVentasHoy({});
+        setDetalleVentas([]);
       }
     }
     setLoading(false);
@@ -126,10 +139,10 @@ export default function CajaPage() {
   const totalEfectivoMes = monthEntries.reduce((s, e) => s + e.ventas_efectivo, 0);
   const totalTransfMes = monthEntries.reduce((s, e) => s + e.ventas_transferencia, 0);
 
+  // Pre-fill form with recorded sales when opening a NEW entry
   const openNew = () => {
     const existing = entries.find((e) => e.fecha === today);
     if (existing) {
-      // Al editar, sumamos ventas_mercadopago + ventas_transferencia en un solo campo
       const transfTotal = existing.ventas_transferencia + existing.ventas_mercadopago;
       setForm({
         fecha: existing.fecha,
@@ -139,10 +152,39 @@ export default function CajaPage() {
         ventas_transferencia: String(transfTotal),
         notas: existing.notas ?? ''
       });
+      setIsEditingExisting(true);
     } else {
-      setForm({ ...EMPTY_FORM, fecha: today });
+      // Pre-fill with recorded sales from today
+      setForm({
+        fecha: today,
+        saldo_inicial: '',
+        ventas_efectivo: String(ventasRegistradas.efectivo || ''),
+        ventas_tarjeta: String(ventasRegistradas.tarjeta || ''),
+        ventas_transferencia: String(ventasRegistradas.transferencia || ''),
+        notas: '',
+      });
+      setIsEditingExisting(false);
     }
     setModal(true);
+  };
+
+  // Auto-update form when ventasHoy data arrives (for new entries still open)
+  useEffect(() => {
+    if (modal && !isEditingExisting && Object.keys(ventasHoy).length > 0) {
+      setForm((prev) => ({
+        ...prev,
+        ventas_efectivo: String(ventasRegistradas.efectivo || ''),
+        ventas_tarjeta: String(ventasRegistradas.tarjeta || ''),
+        ventas_transferencia: String(ventasRegistradas.transferencia || ''),
+      }));
+    }
+  }, [ventasHoy]);
+
+  // Group detail ventas by forma_pago for display
+  const detallesPorPago = {
+    efectivo: detalleVentas.filter((v) => v.forma_pago === 'efectivo'),
+    transferencia: detalleVentas.filter((v) => ['mp', 'mercadopago', 'transferencia'].includes(v.forma_pago ?? '')),
+    tarjeta: detalleVentas.filter((v) => v.forma_pago === 'tarjeta'),
   };
 
   return (
@@ -245,23 +287,65 @@ export default function CajaPage() {
                 <input type="date" value={form.fecha} onChange={(e) => setField('fecha', e.target.value)} />
               </div>
 
-              {/* Ventas registradas del día (auto) */}
+              {/* Ventas registradas del día con productos */}
               <div className={styles.sectionBox}>
                 <h3 className={styles.sectionTitle}>Ventas registradas del día</h3>
-                <p className={styles.sectionDesc}>Ventas locales + pedidos web pagados. Se restan automáticamente al hacer el cuadre.</p>
-                <div className={styles.registradasGrid}>
-                  <span>Efectivo</span><strong>{fmt(ventasRegistradas.efectivo)}</strong>
-                  <span>Transferencias / MP</span><strong>{fmt(ventasRegistradas.transferencia)}</strong>
-                  <span>Tarjeta</span><strong>{fmt(ventasRegistradas.tarjeta)}</strong>
-                  <span className={styles.totalRegLabel}>Total registrado</span>
-                  <strong className={styles.totalRegValue}>{fmt(totalRegistrado)}</strong>
-                </div>
+                <p className={styles.sectionDesc}>Estas ventas ya están cargadas en el sistema. Los montos se pre-cargan abajo para el cuadre.</p>
+
+                {(['efectivo', 'transferencia', 'tarjeta'] as const).map((tipo) => {
+                  const detalles = detallesPorPago[tipo];
+                  if (!detalles.length && ventasRegistradas[tipo] === 0) return null;
+                  return (
+                    <div key={tipo} className={styles.detalleGrupo}>
+                      <div className={styles.detalleHeader}>
+                        <span className={styles.detalleLabel}>{tipo === 'transferencia' ? 'Transferencias / MP' : tipo === 'efectivo' ? 'Efectivo' : 'Tarjeta'}</span>
+                        <span className={styles.detalleTotal}>{fmt(ventasRegistradas[tipo])}</span>
+                      </div>
+                      {detalles.length > 0 && (
+                        <div className={styles.detalleItems}>
+                          {detalles.map((v) => (
+                            <div key={v.id} className={styles.detalleVenta}>
+                              <div className={styles.detalleVentaHead}>
+                                <span className={styles.detalleCliente}>{v.guest_nombre ?? 'Venta local'}</span>
+                                <span className={styles.detalleHora}>
+                                  {new Date(v.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <span className={styles.detalleMonto}>{fmt(v.total)}</span>
+                              </div>
+                              {(v.productos ?? []).length > 0 && (
+                                <div className={styles.detalleProductos}>
+                                  {v.productos.map((p, i) => (
+                                    <span key={i} className={styles.detalleProducto}>
+                                      {p.nombre} x{p.quantity} <em>{fmt(p.precio * p.quantity)}</em>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {totalRegistrado > 0 && (
+                  <div className={styles.totalRegistradoRow}>
+                    <span>Total registrado:</span>
+                    <strong>{fmt(totalRegistrado)}</strong>
+                  </div>
+                )}
+                {totalRegistrado === 0 && (
+                  <p style={{ fontSize: '0.8rem', color: 'var(--gray)', margin: '0.5rem 0 0' }}>
+                    Sin ventas registradas hoy.
+                  </p>
+                )}
               </div>
 
               {/* Cuadre de caja */}
               <div className={styles.sectionBox}>
                 <h3 className={styles.sectionTitle}>Cuadre de caja</h3>
-                <p className={styles.sectionDesc}>Ingresá lo que contás / recibiste. La diferencia se calcula automáticamente.</p>
+                <p className={styles.sectionDesc}>Los montos ya están precargados con las ventas registradas. Ajustalos si lo contado es diferente.</p>
 
                 <div className="form-group">
                   <label>Saldo inicial (dinero en caja al abrir)</label>
@@ -296,7 +380,7 @@ export default function CajaPage() {
                   </div>
 
                   <div className={styles.cuadreItem}>
-                    <label>Transferencias / Mercado Pago</label>
+                    <label>Transferencias / MP</label>
                     <input
                       type="number" min={0}
                       value={form.ventas_transferencia}

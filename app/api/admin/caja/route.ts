@@ -29,13 +29,21 @@ export async function GET(req: NextRequest) {
     const today = new Date().toISOString().split('T')[0];
     const { data: ventas } = await admin
       .from('orders')
-      .select('forma_pago, total, canal, estado')
+      .select('id, forma_pago, total, canal, estado, productos, guest_nombre, created_at')
       .gte('created_at', `${today}T00:00:00`)
       .lte('created_at', `${today}T23:59:59`);
 
     const ventasHoy: Record<string, number> = {};
+    const detalleVentas: Array<{
+      id: string;
+      forma_pago: string;
+      total: number;
+      productos: { nombre: string; quantity: number; precio: number }[];
+      guest_nombre: string | null;
+      created_at: string;
+    }> = [];
+
     (ventas ?? []).forEach((v) => {
-      // Solo contar: locales no cancelados + web pagos
       const incluir =
         (v.canal === 'local' && v.estado !== 'cancelled') ||
         (!v.canal && v.estado === 'paid') ||
@@ -43,9 +51,10 @@ export async function GET(req: NextRequest) {
       if (!incluir) return;
       const fp = v.forma_pago || 'otro';
       ventasHoy[fp] = (ventasHoy[fp] ?? 0) + Number(v.total);
+      detalleVentas.push(v);
     });
 
-    return NextResponse.json({ entries: data, ventasHoy });
+    return NextResponse.json({ entries: data, ventasHoy, detalleVentas });
   }
 
   return NextResponse.json(data);

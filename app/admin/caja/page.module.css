@@ -47,6 +47,24 @@
 .totalRegLabel { font-weight: 600; color: var(--dark) !important; border-top: 1px solid #d1d5db; padding-top: 0.3rem; margin-top: 0.2rem; }
 .totalRegValue { border-top: 1px solid #d1d5db; padding-top: 0.3rem; margin-top: 0.2rem; }
 
+/* Detalle de ventas agrupadas */
+.detalleGrupo { margin-bottom: 0.75rem; }
+.detalleGrupo:last-child { margin-bottom: 0; }
+.detalleHeader { display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0.5rem; background: #eef2ff; border-radius: var(--radius-sm); font-size: 0.8rem; }
+.detalleLabel { font-weight: 700; color: var(--dark); text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.72rem; }
+.detalleTotal { font-weight: 700; color: var(--green-dark); }
+.detalleItems { margin-top: 0.35rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.detalleVenta { background: var(--white); border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.4rem 0.5rem; }
+.detalleVentaHead { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; font-size: 0.78rem; }
+.detalleCliente { font-weight: 600; color: var(--dark); }
+.detalleHora { font-size: 0.7rem; color: var(--gray); }
+.detalleMonto { font-weight: 700; color: var(--green-dark); margin-left: auto; }
+.detalleProductos { display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; margin-top: 0.25rem; padding-top: 0.2rem; border-top: 1px dashed #e2e8f0; }
+.detalleProducto { font-size: 0.72rem; color: #475569; }
+.detalleProducto em { font-style: normal; color: var(--gray); }
+.totalRegistradoRow { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.5rem 0; margin-top: 0.5rem; border-top: 1px solid #d1d5db; font-size: 0.85rem; }
+.totalRegistradoRow strong { color: var(--green-dark); }
+
 /* Cuadre grid */
 .cuadreGrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
 .cuadreItem { display: flex; flex-direction: column; gap: 0.25rem; }
