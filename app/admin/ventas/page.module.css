@@ -43,3 +43,24 @@
 .dropdownName { color: var(--dark); font-weight: 500; }
 .dropdownPrice { color: var(--green-dark); font-weight: 700; white-space: nowrap; }
 .dropdownEmpty { padding: 0.5rem 0.875rem; font-size: 0.82rem; color: var(--gray); }
+
+.saleRow { cursor: pointer; }
+.btnDetail { background: none; border: 1px solid var(--gray-light); border-radius: var(--radius-sm); padding: 0.2rem 0.6rem; font-size: 0.75rem; cursor: pointer; color: var(--green-dark); white-space: nowrap; }
+.btnDetail:hover { background: #f0fdf4; }
+
+/* Detail modal */
+.detailMeta { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
+.detailMetaItem { display: flex; flex-direction: column; gap: 0.15rem; }
+.detailMetaItem span { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray); }
+.detailMetaItem strong { font-size: 0.9rem; color: var(--dark); }
+
+.detailTable { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.detailTable th { padding: 0.4rem 0.5rem; text-align: left; font-weight: 600; color: var(--gray); font-size: 0.75rem; border-bottom: 1px solid var(--gray-light); }
+.detailTable td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--gray-light); }
+
+.detailTotal { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; padding: 0.75rem 0 0; margin-top: 0.75rem; border-top: 2px solid var(--green-dark); font-size: 1rem; }
+.detailTotal strong { font-size: 1.2rem; color: var(--green-dark); }
+
+.detailNotas { margin-top: 1rem; padding: 0.75rem; background: #f9f9f9; border-radius: var(--radius-sm); }
+.detailNotas span { font-size: 0.75rem; font-weight: 600; color: var(--gray); text-transform: uppercase; }
+.detailNotas p { margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--dark); }

@@ -13,12 +13,25 @@ interface Sale {
   guest_nombre: string | null;
   forma_pago: string | null;
   notas: string | null;
+  productos: Record<string, unknown>[];
 }
 
 interface LineItem { product: Product | null; nombre: string; precio: number; cantidad: number }
 
 function fmt(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
+}
+
+function safeStr(v: unknown, fallback = ''): string {
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number') return String(v);
+  return fallback;
+}
+
+function safeNum(v: unknown, fallback = 0): number {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') return parseFloat(v) || fallback;
+  return fallback;
 }
 
 export default function VentasAdmin() {
@@ -40,6 +53,9 @@ export default function VentasAdmin() {
   const [saving, setSaving] = useState(false);
   const [productQuery, setProductQuery] = useState('');
   const [productDropdownOpen, setProductDropdownOpen] = useState(false);
+
+  // Detail modal
+  const [detailSale, setDetailSale] = useState<Sale | null>(null);
 
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 4000); };
 
@@ -149,11 +165,12 @@ export default function VentasAdmin() {
                 <th>Forma pago</th>
                 <th>Total</th>
                 <th>Estado</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {sales.map((s) => (
-                <tr key={s.id}>
+                <tr key={s.id} className={styles.saleRow} onClick={() => setDetailSale(s)}>
                   <td style={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
                     {new Date(s.created_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                   </td>
@@ -170,13 +187,95 @@ export default function VentasAdmin() {
                       {s.estado}
                     </span>
                   </td>
+                  <td>
+                    <button className={styles.btnDetail} onClick={(e) => { e.stopPropagation(); setDetailSale(s); }}>
+                      Ver
+                    </button>
+                  </td>
                 </tr>
               ))}
               {sales.length === 0 && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--gray)', padding: '2rem' }}>Sin ventas en el período seleccionado</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--gray)', padding: '2rem' }}>Sin ventas en el período seleccionado</td></tr>
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Detail modal */}
+      {detailSale && (
+        <div className={styles.overlay} onClick={() => setDetailSale(null)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Detalle de venta</h2>
+              <button className={styles.close} onClick={() => setDetailSale(null)}>✕</button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.detailMeta}>
+                <div className={styles.detailMetaItem}>
+                  <span>Fecha</span>
+                  <strong>{new Date(detailSale.created_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</strong>
+                </div>
+                <div className={styles.detailMetaItem}>
+                  <span>Canal</span>
+                  <strong>{detailSale.canal === 'local' ? 'Local' : 'Web'}</strong>
+                </div>
+                <div className={styles.detailMetaItem}>
+                  <span>Cliente</span>
+                  <strong>{detailSale.guest_nombre ?? '—'}</strong>
+                </div>
+                <div className={styles.detailMetaItem}>
+                  <span>Forma de pago</span>
+                  <strong style={{ textTransform: 'capitalize' }}>{detailSale.forma_pago ?? '—'}</strong>
+                </div>
+                <div className={styles.detailMetaItem}>
+                  <span>Estado</span>
+                  <strong>{detailSale.estado}</strong>
+                </div>
+              </div>
+
+              <h3 style={{ fontSize: '0.9rem', margin: '1rem 0 0.5rem', color: 'var(--dark)' }}>Productos</h3>
+              {(detailSale.productos ?? []).length > 0 ? (
+                <table className={styles.detailTable}>
+                  <thead>
+                    <tr><th>Producto</th><th>Precio</th><th>Cant.</th><th>Subtotal</th></tr>
+                  </thead>
+                  <tbody>
+                    {detailSale.productos.map((p: Record<string, unknown>, i: number) => {
+                      const pName = safeStr(p.nombre);
+                      const pQty = safeNum(p.quantity, 1);
+                      const pPrice = safeNum(p.precio);
+                      return (
+                        <tr key={i}>
+                          <td>{pName}</td>
+                          <td>{fmt(pPrice)}</td>
+                          <td>{pQty}</td>
+                          <td style={{ fontWeight: 600 }}>{fmt(pPrice * pQty)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: 'var(--gray)', fontSize: '0.85rem' }}>Sin detalle de productos</p>
+              )}
+
+              <div className={styles.detailTotal}>
+                <span>Total</span>
+                <strong>{fmt(detailSale.total)}</strong>
+              </div>
+
+              {detailSale.notas && (
+                <div className={styles.detailNotas}>
+                  <span>Notas:</span>
+                  <p>{detailSale.notas}</p>
+                </div>
+              )}
+            </div>
+            <div className={styles.modalFooter}>
+              <button className="btn btn-ghost" onClick={() => setDetailSale(null)}>Cerrar</button>
+            </div>
+          </div>
         </div>
       )}
 
