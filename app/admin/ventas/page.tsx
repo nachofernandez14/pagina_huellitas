@@ -34,12 +34,18 @@ function safeNum(v: unknown, fallback = 0): number {
   return fallback;
 }
 
+function todayLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export default function VentasAdmin() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [canal, setCanal] = useState('');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [dia, setDia] = useState(todayLocal);
+  const [from, setFrom] = useState(todayLocal);
+  const [to, setTo] = useState(todayLocal);
   const [msg, setMsg] = useState('');
 
   // New local sale modal
@@ -69,6 +75,13 @@ export default function VentasAdmin() {
     if (r.ok) setSales(await r.json());
     setLoading(false);
   }, [canal, from, to]);
+
+  // Cuando cambia el día seleccionado, actualiza el filtro de rango
+  const irADia = useCallback((d: string) => {
+    setDia(d);
+    setFrom(d);
+    setTo(d);
+  }, []);
 
   useEffect(() => { loadSales(); }, [loadSales]);
 
@@ -146,6 +159,9 @@ export default function VentasAdmin() {
           <option value="web">Web</option>
           <option value="local">Local</option>
         </select>
+        <input type="date" value={dia} onChange={(e) => irADia(e.target.value)} className={styles.dateInput} />
+        <button className="btn btn-outline" onClick={() => irADia(todayLocal())}>Hoy</button>
+        <span style={{ color: 'var(--gray)', fontSize: '0.82rem' }}>o</span>
         <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={styles.dateInput} />
         <span style={{ color: 'var(--gray)', alignSelf: 'center' }}>→</span>
         <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={styles.dateInput} />

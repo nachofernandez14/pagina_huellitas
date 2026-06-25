@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
+import { todayArgentina, argentinaDayUtcRange } from '@/lib/date';
 
-// GET /api/admin/caja — list entries, newest first (optional ?year=YYYY, ?ventas=true)
+// GET /api/admin/caja — list entries, newest first (optional ?year=YYYY, ?ventas=true, ?fecha=YYYY-MM-DD)
 export async function GET(req: NextRequest) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -23,16 +24,14 @@ export async function GET(req: NextRequest) {
   const { data, error } = await query.limit(200);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Si se solicita, incluir ventas registradas de HOY agrupadas por forma_pago
-  // Solo incluye: ventas locales (no canceladas) + pedidos web pagos
   if (incluirVentas) {
-    // Usar la fecha pasada por el cliente (para coincidir con su zona horaria)
-    const today = req.nextUrl.searchParams.get('fecha') || new Date().toISOString().split('T')[0];
+    const today = req.nextUrl.searchParams.get('fecha') || todayArgentina();
+    const { start, end } = argentinaDayUtcRange(today);
     const { data: ventas, error: errVentas } = await admin
       .from('orders')
       .select('id, forma_pago, total, canal, estado, productos, guest_nombre, created_at')
-      .gte('created_at', `${today}T00:00:00`)
-      .lte('created_at', `${today}T23:59:59`);
+      .gte('created_at', start)
+      .lte('created_at', end);
 
     const ventasHoy: Record<string, number> = {};
     const detalleVentas: Array<{
@@ -63,7 +62,8 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(data);
 }
 
-// POST /api/admin/caja — create entry
+// POST /api/admin/caja — create or update caja entry
+// Recibe totales ingresados por el usuario; calcula pendiente = total - ventasLocales
 export async function POST(req: NextRequest) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -73,15 +73,41 @@ export async function POST(req: NextRequest) {
 
   if (!fecha) return NextResponse.json({ error: 'fecha requerida' }, { status: 400 });
 
+  // Obtener ventas locales de la fecha para calcular pendiente
+  const { start, end } = argentinaDayUtcRange(fecha);
+  const { data: orders } = await admin
+    .from('orders')
+    .select('canal, estado, forma_pago, total')
+    .gte('created_at', start)
+    .lte('created_at', end);
+
+  const locales = { efectivo: 0, transferencia: 0, tarjeta: 0 };
+  (orders ?? []).forEach((o) => {
+    if ((o.canal !== 'local' && o.canal !== null) || o.estado === 'cancelled') return;
+    const fp = o.forma_pago || 'otro';
+    if (fp === 'efectivo') locales.efectivo += Number(o.total);
+    else if (fp === 'tarjeta') locales.tarjeta += Number(o.total);
+    else locales.transferencia += Number(o.total);
+  });
+
+  const pendiente = (total: number, loc: number) => Math.max(0, total - loc);
+
+  const totalEf = Number(ventas_efectivo) || 0;
+  const totalTr = Number(ventas_transferencia) || 0;
+  const totalTj = Number(ventas_tarjeta) || 0;
+
   const { data, error } = await admin
     .from('caja_diaria')
     .upsert({
       fecha,
-      saldo_inicial: saldo_inicial ?? 0,
-      ventas_efectivo: ventas_efectivo ?? 0,
-      ventas_mercadopago: ventas_mercadopago ?? 0,
-      ventas_tarjeta: ventas_tarjeta ?? 0,
-      ventas_transferencia: ventas_transferencia ?? 0,
+      saldo_inicial: Number(saldo_inicial) || 0,
+      ventas_efectivo: pendiente(totalEf, locales.efectivo),
+      ventas_mercadopago: Number(ventas_mercadopago) || 0,
+      ventas_tarjeta: pendiente(totalTj, locales.tarjeta),
+      ventas_transferencia: pendiente(totalTr, locales.transferencia),
+      ventas_locales_efectivo: locales.efectivo,
+      ventas_locales_transferencia: locales.transferencia,
+      ventas_locales_tarjeta: locales.tarjeta,
       notas: notas || null,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'fecha' })

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
+import { argentinaDayUtcRange } from '@/lib/date';
 
 // GET /api/admin/sales?from=2026-01-01&to=2026-12-31&canal=local
 export async function GET(req: NextRequest) {
@@ -18,8 +19,14 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (from) query = query.gte('created_at', `${from}T00:00:00`);
-  if (to)   query = query.lte('created_at', `${to}T23:59:59`);
+  if (from) {
+    const { start } = argentinaDayUtcRange(from);
+    query = query.gte('created_at', start);
+  }
+  if (to) {
+    const { end } = argentinaDayUtcRange(to);
+    query = query.lte('created_at', end);
+  }
   if (canal) query = query.eq('canal', canal);
 
   // Only paid web orders + all local (non-cancelled) orders
