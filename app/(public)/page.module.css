@@ -1,0 +1,310 @@
+﻿/* ── Section backgrounds ──────────────────────────────────── */
+.sectionCats {
+  background: #f3fdf7;
+}
+
+.sectionTrust {
+  background: #fffaf6;
+  padding-bottom: 4rem;
+}
+
+.sectionOffers {
+  background: var(--white);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.offersSubtitle {
+  color: var(--gray);
+}
+
+.offersTitle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(90deg, #f97316, #ef4444);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 2rem !important;
+  letter-spacing: -0.5px;
+  width: 100%;
+}
+
+.offersTitleIcon {
+  color: #f97316;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.6));
+  animation: flamePulse 1.4s ease-in-out infinite;
+}
+
+.offersTitleIconRight {
+  animation-delay: 0.7s;
+  transform-origin: center;
+}
+
+@keyframes flamePulse {
+  0%, 100% { transform: scale(1) rotate(-4deg); filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.6)); }
+  50%       { transform: scale(1.18) rotate(4deg); filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.8)); }
+}
+
+/* ── Categories ───────────────────────────────────────────── */
+
+.catGrid {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: nowrap;
+}
+
+.catCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  text-decoration: none;
+  flex: 1;
+  max-width: 200px;
+}
+
+.catCircle {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  transition: var(--transition);
+}
+
+.catImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.15);
+  transform-origin: center;
+}
+
+.catCard:hover .catCircle {
+  transform: translateY(-6px);
+  box-shadow: 0 0 0 3px var(--green);
+}
+
+.catLabel {
+  font-family: var(--font-title);
+  font-size: 1.05rem;
+  color: var(--dark);
+  text-align: center;
+  font-weight: 600;
+}
+
+/* ── Trust section ───────────────────────────────────────── */
+
+.sectionTrustTitle {
+  font-family: var(--font-title);
+  font-size: clamp(1.6rem, 3vw, 2rem);
+  color: var(--green-dark);
+  text-align: center;
+  margin-bottom: 0.4rem;
+}
+
+.sectionTrustSub {
+  text-align: center;
+  color: var(--gray);
+  font-size: 0.95rem;
+  margin-bottom: 2.5rem;
+}
+
+.trustGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.trustItem {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 2rem 1.25rem 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+  border-bottom: 3px solid transparent;
+}
+
+.trustItem:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-bottom-color: var(--green);
+}
+
+.trustIconWrap {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--green-light), #d4fae4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-dark);
+  flex-shrink: 0;
+}
+
+.trustTitle {
+  font-family: var(--font-title);
+  font-size: 1rem;
+  color: var(--dark);
+}
+
+.trustDesc { font-size: 0.82rem; color: var(--gray); line-height: 1.5; }
+
+/* ── Lost pets promo section ────────────────────────────── */
+.sectionLostPets {
+  background: linear-gradient(135deg, #fff5f0 0%, #fff0e6 50%, #ffe8d6 100%);
+  padding: 3.5rem 0;
+}
+
+.lostPetsInner {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+}
+
+.lostPetsContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.lostPetsTag {
+  display: inline-block;
+  background: rgba(244, 138, 84, 0.15);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  margin-bottom: 0.75rem;
+}
+
+.lostPetsTitle {
+  font-family: var(--font-title);
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  color: var(--accent);
+  margin-bottom: 0.85rem;
+  line-height: 1.2;
+}
+
+.lostPetsDesc {
+  color: var(--gray);
+  font-size: 0.95rem;
+  line-height: 1.65;
+  margin-bottom: 1.5rem;
+  max-width: 520px;
+}
+
+.lostPetsActions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.lostPetsBtnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--accent);
+  color: var(--white);
+  padding: 0.7rem 1.4rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: var(--transition);
+  border: 2px solid var(--accent);
+}
+
+.lostPetsBtnPrimary:hover {
+  background: #e07a3e;
+  border-color: #e07a3e;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(244, 138, 84, 0.35);
+}
+
+.lostPetsBtnSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: transparent;
+  color: var(--accent);
+  padding: 0.7rem 1.4rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: var(--transition);
+  border: 2px solid var(--accent);
+}
+
+.lostPetsBtnSecondary:hover {
+  background: var(--accent);
+  color: var(--white);
+  transform: translateY(-2px);
+}
+
+.lostPetsImageWrap {
+  flex-shrink: 0;
+  width: 280px;
+  height: 340px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(244, 138, 84, 0.2);
+  position: relative;
+}
+
+.lostPetsImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .sectionLostPets { padding: 2.5rem 0; }
+  .lostPetsInner { flex-direction: column-reverse; text-align: center; gap: 1.5rem; }
+  .lostPetsDesc { max-width: 100%; }
+  .lostPetsActions { justify-content: center; }
+  .lostPetsImageWrap { width: 200px; height: 240px; }
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .heroInner { flex-direction: column; text-align: center; }
+  .heroImg { width: 220px; height: 220px; }
+  .heroSubtitle { margin: 0 auto 2rem; }
+  .heroActions { justify-content: center; }
+  .catGrid { gap: 1rem; }
+  .catCircle { width: 86px; height: 86px; }
+  .trustGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .hero { padding: 3rem 0; }
+  .heroImg { width: 160px; height: 160px; }
+  .catGrid { gap: 0.6rem; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 0.5rem; justify-content: flex-start; scrollbar-width: none; }
+  .catGrid::-webkit-scrollbar { display: none; }
+  .catCard { max-width: 90px; flex-shrink: 0; }
+  .catCircle { width: 68px; height: 68px; }
+  .catLabel { font-size: 0.78rem; }
+  .trustGrid { grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .trustItem { padding: 1.5rem 1rem 1.25rem; }
+  .promoStrip { font-size: 0.75rem; }
+}

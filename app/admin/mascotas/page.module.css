@@ -1,0 +1,177 @@
+.page {
+  width: 100%;
+}
+
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  font-family: var(--font-title);
+  font-size: 1.5rem;
+  color: var(--dark);
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.filters {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 1.5rem;
+  background: #e2e8f0;
+  border-radius: var(--radius-sm);
+  padding: 0.2rem;
+  width: fit-content;
+}
+
+.filterBtn {
+  padding: 0.35rem 0.85rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-family: var(--font-body);
+  transition: var(--transition);
+}
+.filterBtnActive {
+  background: var(--white);
+  color: var(--dark);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  background: var(--white);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.table th {
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.table td {
+  padding: 0.6rem 0.75rem;
+  border-top: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+.rowResolved {
+  opacity: 0.55;
+}
+
+.cellName {
+  font-weight: 600;
+  color: var(--dark);
+}
+.cellSub {
+  color: #64748b;
+  font-size: 0.78rem;
+}
+.cellDate {
+  color: #64748b;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.noImg {
+  width: 48px;
+  height: 36px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.badgeLost {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.badgeFound {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.status {
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.statusActive {
+  background: #dbeafe;
+  color: #2563eb;
+}
+.statusResolved {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.btnResolve,
+.btnReactivate,
+.btnDelete {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+.btnResolve {
+  background: #d1fae5;
+  color: #059669;
+}
+.btnResolve:hover {
+  background: #a7f3d0;
+}
+.btnReactivate {
+  background: #dbeafe;
+  color: #2563eb;
+}
+.btnReactivate:hover {
+  background: #bfdbfe;
+}
+.btnDelete {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.btnDelete:hover {
+  background: #fecaca;
+}

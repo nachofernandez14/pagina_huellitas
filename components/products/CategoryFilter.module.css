@@ -1,0 +1,50 @@
+.wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1.1rem;
+  border-radius: 99px;
+  border: 2px solid var(--gray-light);
+  background: var(--white);
+  color: var(--gray);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: var(--font-body);
+}
+
+.catImg {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.catEmoji {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.pill:hover {
+  border-color: var(--green);
+  color: var(--green-dark);
+}
+
+.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--white);
+}
+
+.active:hover {
+  background: var(--green-dark);
+  border-color: var(--green-dark);
+  color: var(--white);
+}

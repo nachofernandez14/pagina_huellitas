@@ -1,0 +1,127 @@
+.banner {
+  background: #2563EB;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.promo {
+  color: #fff;
+  font-size: 0.9rem;
+  font-family: var(--font-body);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.highlight {
+  color: #FBBF24;
+}
+
+.form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.input {
+  height: 36px;
+  padding: 0 0.75rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  background: #fff;
+  color: var(--dark);
+  outline: none;
+  flex: 1;
+  min-width: 120px;
+  max-width: 180px;
+}
+
+.input::placeholder {
+  color: #9ca3af;
+}
+
+.input:focus {
+  box-shadow: 0 0 0 2px #FBBF24;
+}
+
+/* Remove number input arrows */
+.input[type='number']::-webkit-inner-spin-button,
+.input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+.input[type='number'] { -moz-appearance: textfield; }
+
+.btn {
+  height: 36px;
+  padding: 0 1.25rem;
+  background: #FBBF24;
+  color: #1e1e1e;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.btn:hover:not(:disabled) {
+  background: #f59e0b;
+}
+
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.ctaLink {
+  color: #FBBF24;
+  font-weight: 700;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.ctaLink:hover {
+  color: #fde68a;
+}
+
+.successMsg {
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  text-align: center;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .banner {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .promo {
+    white-space: normal;
+  }
+
+  .form {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .input {
+    max-width: 100%;
+    flex: 1 1 140px;
+  }
+}
