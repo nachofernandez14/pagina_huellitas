@@ -101,32 +101,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: errors.join('. ') }, { status: 400 });
   }
 
-  // Check max active pets per user
+  // Check max active pets per user and duplicate check in one query
   const supabase = await createClient();
-  const { count, error: countError } = await supabase
+  const { data: userPets, error: userPetsError } = await supabase
     .from('lost_found_pets')
-    .select('id', { count: 'exact', head: true })
+    .select('id, name, type, created_at')
     .eq('user_id', userId)
     .eq('status', 'activo');
 
-  if (countError) return NextResponse.json({ error: countError.message }, { status: 500 });
+  if (userPetsError) return NextResponse.json({ error: userPetsError.message }, { status: 500 });
 
-  if (count !== null && count >= MAX_ACTIVE_PETS_PER_USER) {
+  if (userPets && userPets.length >= MAX_ACTIVE_PETS_PER_USER) {
     return NextResponse.json({
       error: `Ya tenés ${MAX_ACTIVE_PETS_PER_USER} avisos activos. Resolvé o eliminá uno antes de crear otro.`
     }, { status: 400 });
   }
 
-  // Duplicate check: mismo usuario, mismo nombre, mismo tipo, activo
-  const { data: existing } = await supabase
-    .from('lost_found_pets')
-    .select('id, created_at')
-    .eq('user_id', userId)
-    .eq('name', name)
-    .eq('type', type)
-    .eq('status', 'activo')
-    .maybeSingle();
-
+  const existing = userPets?.find(p => p.name.toLowerCase() === name.toLowerCase() && p.type === type);
   if (existing) {
     const fecha = new Date(existing.created_at).toLocaleDateString('es-AR');
     const typeLabel = type === 'perdida' ? 'Perdida' : type === 'encontrada' ? 'Encontrada' : 'Busca hogar';

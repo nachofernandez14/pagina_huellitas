@@ -15,22 +15,16 @@ export async function getActivePets(limit = 3): Promise<LostFoundPet[]> {
 }
 
 export async function getPetById(id: string): Promise<LostFoundPet | null> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const admin = createAdminClient();
+  const { data } = await admin
     .from('lost_found_pets')
-    .select('*')
+    .select('*, profiles(nombre, telefono)')
     .eq('id', id)
     .single();
 
   if (!data) return null;
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('nombre, telefono')
-    .eq('id', data.user_id)
-    .single();
-
-  return { ...data, profile: profile ?? undefined } as LostFoundPet;
+  return data as LostFoundPet;
 }
 
 export async function getAllPetsAdmin(): Promise<LostFoundPet[]> {
