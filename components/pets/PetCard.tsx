@@ -11,6 +11,7 @@ interface Props {
 
 export default function PetCard({ pet }: Props) {
   const isLost = pet.type === 'perdida';
+  const isHome = pet.type === 'busca_hogar';
 
   return (
     <Link href={`/mascotas/${pet.id}`} className={styles.card}>
@@ -32,8 +33,8 @@ export default function PetCard({ pet }: Props) {
             </svg>
           </div>
         )}
-        <span className={`${styles.badge} ${isLost ? styles.badgeLost : styles.badgeFound}`}>
-          {isLost ? 'Perdida' : 'Encontrada'}
+        <span className={`${styles.badge} ${isLost ? styles.badgeLost : isHome ? styles.badgeHome : styles.badgeFound}`}>
+          {isLost ? 'Perdida' : isHome ? 'Busca hogar' : 'Encontrada'}
         </span>
       </div>
       <div className={styles.body}>

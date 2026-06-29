@@ -5,8 +5,8 @@ import { getCurrentUserId } from '@/lib/auth';
 import styles from './page.module.css';
 
 export const metadata: Metadata = {
-  title: 'Publicar aviso — Mascotas Perdidas y Encontradas — Huellitas Petshop',
-  description: 'Publicá un aviso de mascota perdida o encontrada en Mendoza.',
+  title: 'Publicar aviso — Mascotas Perdidas, Encontradas y Busca Hogar — Huellitas Petshop',
+  description: 'Publicá un aviso de mascota perdida, encontrada o que busca un nuevo hogar en Mendoza.',
 };
 
 export default async function NuevoAvisoPage() {
@@ -24,7 +24,7 @@ export default async function NuevoAvisoPage() {
               </svg>
               <h2 className={styles.authTitle}>Necesitás tener una cuenta</h2>
               <p className={styles.authDesc}>
-                Para publicar avisos de mascotas perdidas o encontradas tenés que iniciar sesión o registrarte. Es rápido y gratis.
+                Para publicar avisos de mascotas perdidas, encontradas o que buscan hogar tenés que iniciar sesión o registrarte. Es rápido y gratis.
               </p>
               <div className={styles.authActions}>
                 <Link href="/login" className="btn btn-primary">Iniciar sesión</Link>
@@ -43,7 +43,7 @@ export default async function NuevoAvisoPage() {
         <div className={styles.wrap}>
           <h1 className={styles.title}>Publicar aviso</h1>
           <p className={styles.subtitle}>
-            Completá el formulario para publicar una mascota perdida o encontrada.
+            Completá el formulario para publicar una mascota perdida, encontrada o que busca hogar.
             Recordá que podés tener hasta 3 avisos activos.
           </p>
           <PetForm />

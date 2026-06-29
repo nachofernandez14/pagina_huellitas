@@ -42,7 +42,7 @@ function resizeImage(file: File): Promise<{ blob: Blob; ext: string }> {
 }
 
 interface FormData {
-  type: '' | 'perdida' | 'encontrada';
+  type: '' | 'perdida' | 'encontrada' | 'busca_hogar';
   name: string;
   description: string;
   zone: string;
@@ -77,7 +77,7 @@ export default function PetForm() {
 
   function validate(): FormErrors {
     const errs: FormErrors = {};
-    if (!form.type) errs.type = 'Seleccioná si está perdida o fue encontrada';
+    if (!form.type) errs.type = 'Seleccioná si está perdida, fue encontrada o busca hogar';
     if (!form.name.trim()) errs.name = 'El nombre de la mascota es obligatorio';
     else if (form.name.trim().length > 100) errs.name = 'Máximo 100 caracteres';
     if (!form.description.trim()) errs.description = 'La descripción es obligatoria';
@@ -198,11 +198,11 @@ export default function PetForm() {
       <fieldset className={styles.fieldGroup}>
         <legend className={styles.label}>Tipo de aviso *</legend>
         <div className={styles.typeGrid}>
-          {(['perdida', 'encontrada'] as const).map((t) => (
+          {(['perdida', 'encontrada', 'busca_hogar'] as const).map((t) => (
             <button
               key={t}
               type="button"
-              className={`${styles.typeBtn} ${form.type === t ? styles.typeBtnActive : ''} ${t === 'perdida' ? styles.typeLost : styles.typeFound}`}
+              className={`${styles.typeBtn} ${form.type === t ? styles.typeBtnActive : ''} ${t === 'perdida' ? styles.typeLost : t === 'encontrada' ? styles.typeFound : styles.typeHome}`}
               onClick={() => setForm((prev) => ({ ...prev, type: t }))}
             >
               <span className={styles.typeIcon}>
@@ -210,13 +210,18 @@ export default function PetForm() {
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10"/><path d="M16 16l-4-4-4 4"/><path d="M12 12v7"/>
                   </svg>
-                ) : (
+                ) : t === 'encontrada' ? (
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                   </svg>
+                ) : (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                  </svg>
                 )}
               </span>
-              <span>{t === 'perdida' ? 'Perdida' : 'Encontrada'}</span>
+              <span>{t === 'perdida' ? 'Perdida' : t === 'encontrada' ? 'Encontrada' : 'Busca hogar'}</span>
             </button>
           ))}
         </div>

@@ -30,7 +30,7 @@
 
 .typeGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 0.75rem;
 }
 
@@ -62,6 +62,11 @@
   border-color: #059669;
   background: #ecfdf5;
   color: #059669;
+}
+.typeBtnActive.typeHome {
+  border-color: #7c3aed;
+  background: #f5f3ff;
+  color: #7c3aed;
 }
 .typeIcon {
   display: flex;

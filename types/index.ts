@@ -161,7 +161,7 @@ export interface Expense {
 // LOST & FOUND PETS TYPES
 // ============================================================
 
-export type PetType = 'perdida' | 'encontrada';
+export type PetType = 'perdida' | 'encontrada' | 'busca_hogar';
 export type PetStatus = 'activo' | 'resuelto';
 
 export interface LostFoundPet {

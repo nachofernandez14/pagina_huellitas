@@ -10,6 +10,7 @@ const TYPES: { value: PetType | ''; label: string }[] = [
   { value: '', label: 'Todas' },
   { value: 'perdida', label: 'Perdidas' },
   { value: 'encontrada', label: 'Encontradas' },
+  { value: 'busca_hogar', label: 'Busca hogar' },
 ];
 
 export default function PetList() {

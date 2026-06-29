@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  if (type && ['perdida', 'encontrada'].includes(type)) {
+  if (type && ['perdida', 'encontrada', 'busca_hogar'].includes(type)) {
     query = query.eq('type', type);
   }
 
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
 
   // Validation
   const errors: string[] = [];
-  if (!['perdida', 'encontrada'].includes(type)) errors.push('El tipo debe ser "perdida" o "encontrada"');
+  if (!['perdida', 'encontrada', 'busca_hogar'].includes(type)) errors.push('El tipo debe ser "perdida", "encontrada" o "busca_hogar"');
   if (!name || name.length < 1) errors.push('El nombre de la mascota es obligatorio');
   if (name.length > 100) errors.push('El nombre no puede superar los 100 caracteres');
   if (!description || description.length < 10) errors.push('La descripción debe tener al menos 10 caracteres');
@@ -129,8 +129,9 @@ export async function POST(req: NextRequest) {
 
   if (existing) {
     const fecha = new Date(existing.created_at).toLocaleDateString('es-AR');
+    const typeLabel = type === 'perdida' ? 'Perdida' : type === 'encontrada' ? 'Encontrada' : 'Busca hogar';
     return NextResponse.json({
-      error: `Ya tenés un aviso ${type === 'perdida' ? 'de' : 'de'} "${name}" como "${type === 'perdida' ? 'Perdida' : 'Encontrada'}" (publicado el ${fecha}). Marcá el anterior como resuelto antes de crear uno nuevo.`
+      error: `Ya tenés un aviso de "${name}" como "${typeLabel}" (publicado el ${fecha}). Marcá el anterior como resuelto antes de crear uno nuevo.`
     }, { status: 409 });
   }
 

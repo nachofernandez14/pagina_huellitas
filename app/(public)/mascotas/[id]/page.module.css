@@ -67,6 +67,10 @@
   background: #d1fae5;
   color: #059669;
 }
+.badgeHome {
+  background: #ede9fe;
+  color: #7c3aed;
+}
 .badgeResolved {
   background: var(--gray-light);
   color: var(--gray);

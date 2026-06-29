@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!data) return { title: 'Aviso no encontrado' };
 
-  const prefix = data.type === 'perdida' ? 'Mascota Perdida' : 'Mascota Encontrada';
+  const prefix = data.type === 'perdida' ? 'Mascota Perdida' : data.type === 'encontrada' ? 'Mascota Encontrada' : 'Mascota Busca Hogar';
   return {
     title: `${prefix}: ${data.name} — Huellitas Petshop`,
     description: data.description.slice(0, 160),
@@ -66,6 +66,7 @@ export default async function PetDetailPage({ params }: Props) {
   const showContact = pet.status === 'activo' || isOwner || isAdmin;
 
   const isLost = pet.type === 'perdida';
+  const isHome = pet.type === 'busca_hogar';
 
   return (
     <section className="section">
@@ -102,8 +103,8 @@ export default async function PetDetailPage({ params }: Props) {
 
           <div className={styles.infoCol}>
             <div className={styles.badgeWrap}>
-              <span className={`${styles.badge} ${isLost ? styles.badgeLost : styles.badgeFound}`}>
-                {isLost ? 'Perdida' : 'Encontrada'}
+              <span className={`${styles.badge} ${isLost ? styles.badgeLost : isHome ? styles.badgeHome : styles.badgeFound}`}>
+                {isLost ? 'Perdida' : isHome ? 'Busca hogar' : 'Encontrada'}
               </span>
               {pet.status === 'resuelto' && (
                 <span className={`${styles.badge} ${styles.badgeResolved}`}>Resuelto</span>
