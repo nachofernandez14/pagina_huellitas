@@ -59,6 +59,7 @@ export default function VentasAdmin() {
   const [saving, setSaving] = useState(false);
   const [productQuery, setProductQuery] = useState('');
   const [productDropdownOpen, setProductDropdownOpen] = useState(false);
+  const [ventaFecha, setVentaFecha] = useState(todayLocal());
 
   // Detail modal
   const [detailSale, setDetailSale] = useState<Sale | null>(null);
@@ -98,6 +99,7 @@ export default function VentasAdmin() {
     setFormaPago('efectivo');
     setNotas('');
     setDescuento(0);
+    setVentaFecha(todayLocal());
     setProductQuery('');
     setProductDropdownOpen(false);
     setModalOpen(true);
@@ -129,6 +131,7 @@ export default function VentasAdmin() {
         forma_pago: formaPago,
         notas: notas || undefined,
         descuento_manual: descuento,
+        fecha: ventaFecha,
       }),
     });
     setSaving(false);
@@ -306,9 +309,15 @@ export default function VentasAdmin() {
             <div className={styles.modalBody}>
               <div className={styles.grid2}>
                 <div className="form-group">
+                  <label>Fecha de la venta</label>
+                  <input type="date" value={ventaFecha} onChange={(e) => setVentaFecha(e.target.value)} />
+                </div>
+                <div className="form-group">
                   <label>Cliente (opcional)</label>
                   <input placeholder="Nombre del cliente" value={guestNombre} onChange={(e) => setGuestNombre(e.target.value)} />
                 </div>
+              </div>
+              <div className={styles.grid2}>
                 <div className="form-group">
                   <label>Forma de pago</label>
                   <select value={formaPago} onChange={(e) => setFormaPago(e.target.value)}>

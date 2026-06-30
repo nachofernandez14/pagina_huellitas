@@ -14,6 +14,7 @@ interface CajaEntry {
   ventas_locales_efectivo?: number;
   ventas_locales_transferencia?: number;
   ventas_locales_tarjeta?: number;
+  ventas_locales_otro?: number;
   notas: string | null;
 }
 
@@ -34,6 +35,12 @@ function safeStr(v: unknown, fallback = ''): string {
 
 function todayLocal(): string {
   const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function yesterdayLocal(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
@@ -74,6 +81,7 @@ function localesPorTipo(e: CajaEntry) {
     efectivo: e.ventas_locales_efectivo ?? 0,
     transferencia: e.ventas_locales_transferencia ?? 0,
     tarjeta: e.ventas_locales_tarjeta ?? 0,
+    otro: e.ventas_locales_otro ?? 0,
   };
 }
 
@@ -130,6 +138,12 @@ export default function CajaPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (modal && form.fecha) {
+      fetchVentas(form.fecha);
+    }
+  }, [modal, form.fecha, fetchVentas]);
+
   const setField = (k: keyof typeof EMPTY_FORM, v: string) =>
     setForm((prev) => ({ ...prev, [k]: v }));
 
@@ -138,8 +152,9 @@ export default function CajaPage() {
     efectivo: ventasHoy['efectivo'] ?? 0,
     transferencia: (ventasHoy['mp'] ?? 0) + (ventasHoy['mercadopago'] ?? 0) + (ventasHoy['transferencia'] ?? 0),
     tarjeta: ventasHoy['tarjeta'] ?? 0,
+    otro: ventasHoy['otro'] ?? 0,
   };
-  const totalBolsas = bolsas.efectivo + bolsas.transferencia + bolsas.tarjeta;
+  const totalBolsas = bolsas.efectivo + bolsas.transferencia + bolsas.tarjeta + bolsas.otro;
 
   // Total contado (lo que ingresa el admin)
   const totalContado = {
@@ -215,6 +230,28 @@ export default function CajaPage() {
     setModal(true);
   };
 
+  const openForDate = async (fecha: string) => {
+    setEditingId(null);
+    await fetchVentas(fecha);
+    const existing = entries.find((e) => e.fecha === fecha);
+    if (existing) {
+      const ptes = pendientePorTipo(existing);
+      const loc = localesPorTipo(existing);
+      const transfTotal = ptes.transferencia + loc.transferencia;
+      setForm({
+        fecha: existing.fecha,
+        saldo_inicial: String(existing.saldo_inicial),
+        ventas_efectivo: String(ptes.efectivo + loc.efectivo),
+        ventas_tarjeta: String(ptes.tarjeta + loc.tarjeta),
+        ventas_transferencia: String(transfTotal),
+        notas: existing.notas ?? ''
+      });
+    } else {
+      setForm({ ...EMPTY_FORM, fecha });
+    }
+    setModal(true);
+  };
+
   const openEdit = async (entry: CajaEntry) => {
     setEditingId(entry.id);
     await fetchVentas(entry.fecha);
@@ -236,6 +273,7 @@ export default function CajaPage() {
     efectivo: detalleVentas.filter((v) => v.forma_pago === 'efectivo'),
     transferencia: detalleVentas.filter((v) => ['mp', 'mercadopago', 'transferencia'].includes(v.forma_pago ?? '')),
     tarjeta: detalleVentas.filter((v) => v.forma_pago === 'tarjeta'),
+    otro: detalleVentas.filter((v) => v.forma_pago === 'otro'),
   };
 
   return (
@@ -245,9 +283,14 @@ export default function CajaPage() {
           <h1 className={styles.title}>Caja diaria</h1>
           <p className={styles.subtitle}>Registrá el movimiento de caja al cierre de cada jornada</p>
         </div>
-        <button className="btn btn-primary" onClick={openNew}>
-          + Registrar cierre de caja
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-outline" onClick={() => openForDate(yesterdayLocal())}>
+            Cierre de ayer
+          </button>
+          <button className="btn btn-primary" onClick={openNew}>
+            + Registrar cierre de caja
+          </button>
+        </div>
       </div>
 
       {msg && <div className={styles.toast}>{msg}</div>}
@@ -304,7 +347,7 @@ export default function CajaPage() {
                     </td>
                     <td>{fmt(e.saldo_inicial)}</td>
                     <td style={{ fontSize: '0.8rem', color: '#475569' }}>
-                      {fmt(loc.efectivo + loc.transferencia + loc.tarjeta)}
+                      {fmt(loc.efectivo + loc.transferencia + loc.tarjeta + loc.otro)}
                     </td>
                     <td>{fmt(ptes.efectivo)}</td>
                     <td>{fmt(ptes.transferencia)}</td>
@@ -361,13 +404,15 @@ export default function CajaPage() {
                     : 'Estas ventas ya están cargadas y se restan automáticamente del total que ingreses abajo.'}
                 </p>
 
-                {(['efectivo', 'transferencia', 'tarjeta'] as const).map((tipo) => {
+                {(['efectivo', 'transferencia', 'tarjeta', 'otro'] as const).map((tipo) => {
                   const detalles = detallesPorPago[tipo];
                   if (!detalles.length && bolsas[tipo] === 0) return null;
                   return (
                     <div key={tipo} className={styles.detalleGrupo}>
                       <div className={styles.detalleHeader}>
-                        <span className={styles.detalleLabel}>{tipo === 'transferencia' ? 'Transferencias / MP' : tipo === 'efectivo' ? 'Efectivo' : 'Tarjeta'}</span>
+                        <span className={styles.detalleLabel}>
+                          {tipo === 'transferencia' ? 'Transferencias / MP' : tipo === 'efectivo' ? 'Efectivo' : tipo === 'tarjeta' ? 'Tarjeta' : 'QR / Otro'}
+                        </span>
                         <span className={styles.detalleTotal}>{fmt(bolsas[tipo])}</span>
                       </div>
                       {detalles.length > 0 && (

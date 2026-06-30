@@ -43,25 +43,31 @@ export async function POST(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
-  const { productos, total, guest_nombre, forma_pago, notas, descuento_manual } = body;
+  const { productos, total, guest_nombre, forma_pago, notas, descuento_manual, fecha } = body;
 
   if (!productos || !Array.isArray(productos) || productos.length === 0)
     return NextResponse.json({ error: 'productos requerido' }, { status: 400 });
   if (typeof total !== 'number' || total < 0)
     return NextResponse.json({ error: 'total inválido' }, { status: 400 });
 
+  const insertData: Record<string, unknown> = {
+    canal: 'local',
+    estado: 'paid',
+    productos,
+    total,
+    guest_nombre: guest_nombre || 'Venta local',
+    forma_pago: forma_pago || 'efectivo',
+    notas: notas || null,
+    descuento_manual: descuento_manual || 0,
+  };
+
+  if (fecha && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    insertData.created_at = `${fecha}T${new Date().toTimeString().slice(0, 8)}`;
+  }
+
   const { data, error } = await admin
     .from('orders')
-    .insert({
-      canal: 'local',
-      estado: 'paid',
-      productos,
-      total,
-      guest_nombre: guest_nombre || 'Venta local',
-      forma_pago: forma_pago || 'efectivo',
-      notas: notas || null,
-      descuento_manual: descuento_manual || 0,
-    })
+    .insert(insertData)
     .select()
     .single();
 

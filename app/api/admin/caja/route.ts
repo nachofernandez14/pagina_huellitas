@@ -81,12 +81,13 @@ export async function POST(req: NextRequest) {
     .gte('created_at', start)
     .lte('created_at', end);
 
-  const locales = { efectivo: 0, transferencia: 0, tarjeta: 0 };
+  const locales = { efectivo: 0, transferencia: 0, tarjeta: 0, otro: 0 };
   (orders ?? []).forEach((o) => {
     if ((o.canal !== 'local' && o.canal !== null) || o.estado === 'cancelled') return;
     const fp = o.forma_pago || 'otro';
     if (fp === 'efectivo') locales.efectivo += Number(o.total);
     else if (fp === 'tarjeta') locales.tarjeta += Number(o.total);
+    else if (fp === 'otro') locales.otro += Number(o.total);
     else locales.transferencia += Number(o.total);
   });
 
@@ -108,6 +109,7 @@ export async function POST(req: NextRequest) {
       ventas_locales_efectivo: locales.efectivo,
       ventas_locales_transferencia: locales.transferencia,
       ventas_locales_tarjeta: locales.tarjeta,
+      ventas_locales_otro: locales.otro,
       notas: notas || null,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'fecha' })
