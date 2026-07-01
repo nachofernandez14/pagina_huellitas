@@ -152,9 +152,10 @@ export default function CajaPage() {
     efectivo: ventasHoy['efectivo'] ?? 0,
     transferencia: (ventasHoy['mp'] ?? 0) + (ventasHoy['mercadopago'] ?? 0) + (ventasHoy['transferencia'] ?? 0),
     tarjeta: ventasHoy['tarjeta'] ?? 0,
-    otro: ventasHoy['otro'] ?? 0,
+    qr: ventasHoy['otro'] ?? 0,
   };
-  const totalBolsas = bolsas.efectivo + bolsas.transferencia + bolsas.tarjeta + bolsas.otro;
+  const totalBolsas = bolsas.efectivo + bolsas.transferencia + bolsas.tarjeta + bolsas.qr;
+  const totalPosnet = bolsas.tarjeta + bolsas.qr;
 
   // Total contado (lo que ingresa el admin)
   const totalContado = {
@@ -165,10 +166,11 @@ export default function CajaPage() {
   const sumaContado = totalContado.efectivo + totalContado.transferencia + totalContado.tarjeta;
 
   // Monto pendiente = total contado - bolsas registradas
+  // Tarjeta y QR van al mismo posnet, se combinan para el pendiente
   const pendiente = {
     efectivo: Math.max(0, totalContado.efectivo - bolsas.efectivo),
     transferencia: Math.max(0, totalContado.transferencia - bolsas.transferencia),
-    tarjeta: Math.max(0, totalContado.tarjeta - bolsas.tarjeta),
+    tarjeta: Math.max(0, totalContado.tarjeta - totalPosnet),
   };
   const totalPendiente = pendiente.efectivo + pendiente.transferencia + pendiente.tarjeta;
 
@@ -404,14 +406,14 @@ export default function CajaPage() {
                     : 'Estas ventas ya están cargadas y se restan automáticamente del total que ingreses abajo.'}
                 </p>
 
-                {(['efectivo', 'transferencia', 'tarjeta', 'otro'] as const).map((tipo) => {
-                  const detalles = detallesPorPago[tipo];
+                {(['efectivo', 'transferencia', 'tarjeta', 'qr'] as const).map((tipo) => {
+                  const detalles = detallesPorPago[tipo === 'qr' ? 'otro' : tipo];
                   if (!detalles.length && bolsas[tipo] === 0) return null;
                   return (
                     <div key={tipo} className={styles.detalleGrupo}>
                       <div className={styles.detalleHeader}>
                         <span className={styles.detalleLabel}>
-                          {tipo === 'transferencia' ? 'Transferencias / MP' : tipo === 'efectivo' ? 'Efectivo' : tipo === 'tarjeta' ? 'Tarjeta' : 'QR / Otro'}
+                          {tipo === 'transferencia' ? 'Transferencias / MP' : tipo === 'efectivo' ? 'Efectivo' : tipo === 'tarjeta' ? 'Tarjeta' : 'QR'}
                         </span>
                         <span className={styles.detalleTotal}>{fmt(bolsas[tipo])}</span>
                       </div>
@@ -536,8 +538,14 @@ export default function CajaPage() {
               <div className={styles.resumen}>
                 <span>Total recaudado:</span>
                 <strong>{fmt(sumaContado)}</strong>
-                <span>Total ventas locales:</span>
-                <strong>{fmt(totalBolsas)}</strong>
+                <span>Efectivo locales:</span>
+                <strong>{fmt(bolsas.efectivo)}</strong>
+                <span>Transferencias locales:</span>
+                <strong>{fmt(bolsas.transferencia)}</strong>
+                <span>Tarjeta locales:</span>
+                <strong>{fmt(bolsas.tarjeta)}</strong>
+                <span>QR locales:</span>
+                <strong>{fmt(bolsas.qr)}</strong>
                 <div className={styles.resumenTotal}>
                   <span>Monto pendiente (alimento suelto)</span>
                   <strong className={styles.sueldoFinal}>{fmt(totalPendiente)}</strong>
