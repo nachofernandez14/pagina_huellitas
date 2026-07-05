@@ -17,7 +17,7 @@ interface Sale {
   productos: Record<string, unknown>[];
 }
 
-interface LineItem { product: Product | null; nombre: string; precio: number; cantidad: number }
+interface LineItem { product: Product | null; nombre: string; precio: number; cantidad: number; id?: string }
 
 function fmt(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
@@ -96,6 +96,7 @@ export default function VentasAdmin() {
     setEditItems(
       (s.productos ?? []).map((p: Record<string, unknown>) => ({
         product: null,
+        id: safeStr(p.id) || undefined,
         nombre: safeStr(p.nombre),
         precio: safeNum(p.precio),
         cantidad: safeNum(p.quantity, 1),
@@ -137,14 +138,14 @@ export default function VentasAdmin() {
     setEditSaving(true);
     const r = await fetch(`/api/admin/sales/${detailSale.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({
         forma_pago: editFormaPago,
         notas: editNotas || null,
         guest_nombre: editGuestNombre || null,
         fecha: editVentaFecha,
         descuento_manual: editDescuento,
-        productos: editItems.map((i) => ({ id: i.product?.id, nombre: i.nombre, precio: i.precio, quantity: i.cantidad })),
+        productos: editItems.map((i) => ({ id: i.id ?? i.product?.id, nombre: i.nombre, precio: i.precio, quantity: i.cantidad })),
         total: editTotal,
       }),
     });
@@ -162,7 +163,7 @@ export default function VentasAdmin() {
   };
 
   const handleDelete = async (id: string) => {
-    const r = await fetch(`/api/admin/sales/${id}`, { method: 'DELETE' });
+    const r = await fetch(`/api/admin/sales/${id}`, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
     if (r.ok) {
       setSales((prev) => prev.filter((s) => s.id !== id));
       setDetailSale(null);

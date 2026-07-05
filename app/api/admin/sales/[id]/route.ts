@@ -45,15 +45,15 @@ export async function PATCH(
   }
 
   if (body.productos !== undefined) {
-    const newProductos = body.productos as Array<{ id: string; quantity: number }>;
+    const newProductos = body.productos as Array<{ id?: string; quantity: number }>;
     if (!Array.isArray(newProductos) || newProductos.length === 0)
       return NextResponse.json({ error: 'productos requerido' }, { status: 400 });
-    if (newProductos.some((p) => !p.id || !Number.isInteger(p.quantity) || p.quantity < 1))
-      return NextResponse.json({ error: 'productos inválidos' }, { status: 400 });
+    if (newProductos.some((p) => !Number.isInteger(p.quantity) || p.quantity < 1))
+      return NextResponse.json({ error: 'cantidades inválidas' }, { status: 400 });
 
-    const oldProductos = (existing.productos ?? []) as Array<{ id: string; quantity: number }>;
-    const oldKey = oldProductos.map((p) => `${p.id}-${p.quantity}`).sort().join(',');
-    const newKey = newProductos.map((p) => `${p.id}-${p.quantity}`).sort().join(',');
+    const oldProductos = (existing.productos ?? []) as Array<{ id?: string; quantity: number }>;
+    const oldKey = oldProductos.map((p) => `${p.id ?? 'no-id'}-${p.quantity}`).sort().join(',');
+    const newKey = newProductos.map((p) => `${p.id ?? 'no-id'}-${p.quantity}`).sort().join(',');
 
     if (oldKey !== newKey) {
       for (const item of oldProductos) {
