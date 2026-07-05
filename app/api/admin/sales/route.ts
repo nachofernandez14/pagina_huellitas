@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin, getCurrentUserId } from '@/lib/auth';
+import { auditLog } from '@/lib/audit';
 import { argentinaDayUtcRange } from '@/lib/date';
 
 // GET /api/admin/sales?from=2026-01-01&to=2026-12-31&canal=local
@@ -49,6 +50,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'productos requerido' }, { status: 400 });
   if (typeof total !== 'number' || total < 0)
     return NextResponse.json({ error: 'total inválido' }, { status: 400 });
+  if (productos.some((p: Record<string, unknown>) => !p.id || !p.nombre || typeof p.precio !== 'number' || !Number.isInteger(p.quantity) || (p.quantity as number) < 1))
+    return NextResponse.json({ error: 'productos inválidos: cada producto debe tener id, nombre, precio válido y quantity > 0' }, { status: 400 });
 
   const insertData: Record<string, unknown> = {
     canal: 'local',
@@ -88,6 +91,14 @@ export async function POST(req: NextRequest) {
       }
     }
   }
+
+  auditLog({
+    user_id: await getCurrentUserId(),
+    action: 'sale.create',
+    entity_type: 'orders',
+    entity_id: data.id,
+    details: { total, forma_pago, guest_nombre, productos: productos.length },
+  });
 
   return NextResponse.json(data, { status: 201 });
 }

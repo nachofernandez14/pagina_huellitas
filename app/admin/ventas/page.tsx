@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import type { Product } from '@/types';
+import ConfirmModal from '@/components/admin/ConfirmModal';
 import styles from './page.module.css';
 
 interface Sale {
@@ -70,27 +71,69 @@ export default function VentasAdmin() {
   const [editNotas, setEditNotas] = useState('');
   const [editGuestNombre, setEditGuestNombre] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const [editItems, setEditItems] = useState<LineItem[]>([]);
+  const [editProductQuery, setEditProductQuery] = useState('');
+  const [editProductDropdownOpen, setEditProductDropdownOpen] = useState(false);
+  const [editDescuento, setEditDescuento] = useState(0);
+  const [editVentaFecha, setEditVentaFecha] = useState('');
 
-  const openEdit = (s: Sale) => {
+  // Delete confirmation
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const openEdit = async (s: Sale) => {
+    if (!products.length) {
+      const r = await fetch('/api/products?limit=300&offset=0');
+      if (r.ok) {
+        const json = await r.json();
+        setProducts(json.data ?? []);
+      }
+    }
     setDetailSale(s);
     setEditFormaPago(s.forma_pago || 'efectivo');
     setEditNotas(s.notas || '');
     setEditGuestNombre(s.guest_nombre || '');
+    setEditDescuento(0);
+    setEditItems(
+      (s.productos ?? []).map((p: Record<string, unknown>) => ({
+        product: null,
+        nombre: safeStr(p.nombre),
+        precio: safeNum(p.precio),
+        cantidad: safeNum(p.quantity, 1),
+      })),
+    );
+    const d = new Date(s.created_at);
+    setEditVentaFecha(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    setEditProductQuery('');
+    setEditProductDropdownOpen(false);
     setEditingSale(true);
   };
 
   const startEditing = () => {
     if (!detailSale) return;
-    setEditFormaPago(detailSale.forma_pago || 'efectivo');
-    setEditNotas(detailSale.notas || '');
-    setEditGuestNombre(detailSale.guest_nombre || '');
-    setEditingSale(true);
+    openEdit(detailSale);
   };
 
-  const cancelEditing = () => setEditingSale(false);
+  const cancelEditing = () => {
+    setEditingSale(false);
+    setEditItems([]);
+  };
+
+  const addEditItem = (p: Product) => {
+    setEditItems((prev) => {
+      const ex = prev.find((i) => i.product?.id === p.id);
+      if (ex) return prev.map((i) => i.product?.id === p.id ? { ...i, cantidad: i.cantidad + 1 } : i);
+      return [...prev, { product: p, nombre: `${p.nombre}${p.kg ? ` ${p.kg}` : ''}`, precio: p.precio_local ?? p.precio ?? 0, cantidad: 1 }];
+    });
+  };
+
+  const removeEditItem = (idx: number) => setEditItems((prev) => prev.filter((_, i) => i !== idx));
+
+  const editSubtotal = editItems.reduce((s, i) => s + i.precio * i.cantidad, 0);
+  const editTotal = Math.max(0, editSubtotal - editDescuento);
 
   const handleEditSave = async () => {
     if (!detailSale) return;
+    if (!editItems.length) { flash('❌ Agregá al menos un producto'); return; }
     setEditSaving(true);
     const r = await fetch(`/api/admin/sales/${detailSale.id}`, {
       method: 'PATCH',
@@ -99,6 +142,10 @@ export default function VentasAdmin() {
         forma_pago: editFormaPago,
         notas: editNotas || null,
         guest_nombre: editGuestNombre || null,
+        fecha: editVentaFecha,
+        descuento_manual: editDescuento,
+        productos: editItems.map((i) => ({ id: i.product?.id, nombre: i.nombre, precio: i.precio, quantity: i.cantidad })),
+        total: editTotal,
       }),
     });
     setEditSaving(false);
@@ -111,6 +158,20 @@ export default function VentasAdmin() {
     } else {
       const e = await r.json();
       flash(`❌ ${e.error}`);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const r = await fetch(`/api/admin/sales/${id}`, { method: 'DELETE' });
+    if (r.ok) {
+      setSales((prev) => prev.filter((s) => s.id !== id));
+      setDetailSale(null);
+      setConfirmDeleteId(null);
+      flash('🗑️ Venta eliminada — stock restaurado');
+    } else {
+      const e = await r.json();
+      flash(`❌ ${e.error}`);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -288,112 +349,221 @@ export default function VentasAdmin() {
 
       {/* Detail / Edit modal */}
       {detailSale && (
-        <div className={styles.overlay} onClick={() => { setDetailSale(null); setEditingSale(false); }}>
+        <div className={styles.overlay} onClick={() => { setDetailSale(null); setEditingSale(false); setEditItems([]); }}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>{editingSale ? 'Editar venta local' : 'Detalle de venta'}</h2>
-              <button className={styles.close} onClick={() => { setDetailSale(null); setEditingSale(false); }}>✕</button>
+              <button className={styles.close} onClick={() => { setDetailSale(null); setEditingSale(false); setEditItems([]); }}>✕</button>
             </div>
             <div className={styles.modalBody}>
-              <div className={styles.detailMeta}>
-                <div className={styles.detailMetaItem}>
-                  <span>Fecha</span>
-                  <strong>{new Date(detailSale.created_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</strong>
-                </div>
-                <div className={styles.detailMetaItem}>
-                  <span>Canal</span>
-                  <strong>{detailSale.canal === 'local' ? 'Local' : 'Web'}</strong>
-                </div>
-                <div className={styles.detailMetaItem}>
-                  <span>Cliente</span>
-                  {editingSale ? (
-                    <input value={editGuestNombre} onChange={(e) => setEditGuestNombre(e.target.value)} placeholder="Nombre del cliente" />
-                  ) : (
-                    <strong>{detailSale.guest_nombre ?? '—'}</strong>
-                  )}
-                </div>
-                <div className={styles.detailMetaItem}>
-                  <span>Forma de pago</span>
-                  {editingSale ? (
-                    <select value={editFormaPago} onChange={(e) => setEditFormaPago(e.target.value)}>
-                      <option value="efectivo">Efectivo</option>
-                      <option value="transferencia">Transferencia</option>
-                      <option value="tarjeta">Tarjeta</option>
-                      <option value="mp">MercadoPago</option>
-                      <option value="otro">Otro</option>
-                    </select>
-                  ) : (
-                    <strong style={{ textTransform: 'capitalize' }}>{detailSale.forma_pago ?? '—'}</strong>
-                  )}
-                </div>
-                <div className={styles.detailMetaItem}>
-                  <span>Estado</span>
-                  <strong>{detailSale.estado}</strong>
-                </div>
-              </div>
-
-              <h3 style={{ fontSize: '0.9rem', margin: '1rem 0 0.5rem', color: 'var(--dark)' }}>Productos</h3>
-              {(detailSale.productos ?? []).length > 0 ? (
-                <table className={styles.detailTable}>
-                  <thead>
-                    <tr><th>Producto</th><th>Precio</th><th>Cant.</th><th>Subtotal</th></tr>
-                  </thead>
-                  <tbody>
-                    {detailSale.productos.map((p: Record<string, unknown>, i: number) => {
-                      const pName = safeStr(p.nombre);
-                      const pQty = safeNum(p.quantity, 1);
-                      const pPrice = safeNum(p.precio);
-                      return (
-                        <tr key={i}>
-                          <td>{pName}</td>
-                          <td>{fmt(pPrice)}</td>
-                          <td>{pQty}</td>
-                          <td style={{ fontWeight: 600 }}>{fmt(pPrice * pQty)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              ) : (
-                <p style={{ color: 'var(--gray)', fontSize: '0.85rem' }}>Sin detalle de productos</p>
-              )}
-
-              <div className={styles.detailTotal}>
-                <span>Total</span>
-                <strong>{fmt(detailSale.total)}</strong>
-              </div>
-
               {editingSale ? (
-                <div className="form-group" style={{ marginTop: '0.75rem' }}>
-                  <label>Notas</label>
-                  <input value={editNotas} onChange={(e) => setEditNotas(e.target.value)} placeholder="Observaciones..." />
-                </div>
-              ) : detailSale.notas ? (
-                <div className={styles.detailNotas}>
-                  <span>Notas:</span>
-                  <p>{detailSale.notas}</p>
-                </div>
-              ) : null}
+                <>
+                  <div className={styles.grid2}>
+                    <div className="form-group">
+                      <label>Fecha de la venta</label>
+                      <input type="date" value={editVentaFecha} onChange={(e) => setEditVentaFecha(e.target.value)} />
+                    </div>
+                    <div className="form-group">
+                      <label>Cliente</label>
+                      <input value={editGuestNombre} onChange={(e) => setEditGuestNombre(e.target.value)} placeholder="Nombre del cliente" />
+                    </div>
+                  </div>
+                  <div className={styles.grid2}>
+                    <div className="form-group">
+                      <label>Forma de pago</label>
+                      <select value={editFormaPago} onChange={(e) => setEditFormaPago(e.target.value)}>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="transferencia">Transferencia</option>
+                        <option value="tarjeta">Tarjeta</option>
+                        <option value="mp">MercadoPago</option>
+                        <option value="otro">Otro</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Buscar y agregar productos</label>
+                    <div className={styles.searchWrap}>
+                      <input
+                        type="text"
+                        value={editProductQuery}
+                        onChange={(e) => { setEditProductQuery(e.target.value); setEditProductDropdownOpen(true); }}
+                        onFocus={() => setEditProductDropdownOpen(true)}
+                        onBlur={() => setTimeout(() => setEditProductDropdownOpen(false), 200)}
+                        placeholder="Escribir nombre del producto..."
+                      />
+                      {editProductDropdownOpen && editProductQuery.length > 0 && (
+                        <ul className={styles.dropdownList}>
+                          {products
+                            .filter((p) => p.activo && `${p.nombre} ${p.kg ?? ''}`.toLowerCase().includes(editProductQuery.toLowerCase()))
+                            .slice(0, 20)
+                            .map((p) => (
+                              <li key={p.id} className={styles.dropdownItem}
+                                onMouseDown={() => {
+                                  addEditItem(p);
+                                  setEditProductQuery('');
+                                  setEditProductDropdownOpen(false);
+                                }}
+                              >
+                                <span className={styles.dropdownName}>{p.nombre}{p.kg ? ` (${p.kg})` : ''}</span>
+                                <span className={styles.dropdownPrice}>{fmt(p.precio_local ?? p.precio ?? 0)}</span>
+                              </li>
+                            ))}
+                          {products.filter((p) => p.activo && `${p.nombre} ${p.kg ?? ''}`.toLowerCase().includes(editProductQuery.toLowerCase())).length === 0 && (
+                            <li className={styles.dropdownEmpty}>Sin resultados</li>
+                          )}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+
+                  {editItems.length > 0 && (
+                    <table className={styles.itemsTable}>
+                      <thead><tr><th>Producto</th><th>Precio</th><th>Cant.</th><th>Subtotal</th><th></th></tr></thead>
+                      <tbody>
+                        {editItems.map((item, i) => (
+                          <tr key={i}>
+                            <td>{item.nombre}</td>
+                            <td>
+                              <input
+                                type="number" min={0}
+                                value={item.precio}
+                                className={styles.priceInput}
+                                onChange={(e) => setEditItems((prev) => prev.map((x, j) => j === i ? { ...x, precio: Math.max(0, parseFloat(e.target.value) || 0) } : x))}
+                                onWheel={(e) => e.currentTarget.blur()}
+                                onFocus={(e) => e.target.select()}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="number" min={1}
+                                value={item.cantidad}
+                                className={styles.qtyInput}
+                                onChange={(e) => setEditItems((prev) => prev.map((x, j) => j === i ? { ...x, cantidad: Math.max(1, parseInt(e.target.value) || 1) } : x))}
+                                onWheel={(e) => e.currentTarget.blur()}
+                                onFocus={(e) => e.target.select()}
+                              />
+                            </td>
+                            <td>{fmt(item.precio * item.cantidad)}</td>
+                            <td><button className={styles.btnDel} onClick={() => removeEditItem(i)}>✕</button></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+
+                  <div className={styles.totalsRow}>
+                    <span>Subtotal: <strong>{fmt(editSubtotal)}</strong></span>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      Descuento: $
+                      <input type="number" min={0} value={editDescuento} onChange={(e) => setEditDescuento(parseFloat(e.target.value) || 0)} onWheel={(e) => e.currentTarget.blur()} onFocus={(e) => e.target.select()} className={styles.discountInput} />
+                    </label>
+                    <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>Total: {fmt(editTotal)}</span>
+                  </div>
+
+                  <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                    <label>Notas</label>
+                    <input value={editNotas} onChange={(e) => setEditNotas(e.target.value)} placeholder="Observaciones..." />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className={styles.detailMeta}>
+                    <div className={styles.detailMetaItem}>
+                      <span>Fecha</span>
+                      <strong>{new Date(detailSale.created_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</strong>
+                    </div>
+                    <div className={styles.detailMetaItem}>
+                      <span>Canal</span>
+                      <strong>{detailSale.canal === 'local' ? 'Local' : 'Web'}</strong>
+                    </div>
+                    <div className={styles.detailMetaItem}>
+                      <span>Cliente</span>
+                      <strong>{detailSale.guest_nombre ?? '—'}</strong>
+                    </div>
+                    <div className={styles.detailMetaItem}>
+                      <span>Forma de pago</span>
+                      <strong style={{ textTransform: 'capitalize' }}>{detailSale.forma_pago ?? '—'}</strong>
+                    </div>
+                    <div className={styles.detailMetaItem}>
+                      <span>Estado</span>
+                      <strong>{detailSale.estado}</strong>
+                    </div>
+                  </div>
+
+                  <h3 style={{ fontSize: '0.9rem', margin: '1rem 0 0.5rem', color: 'var(--dark)' }}>Productos</h3>
+                  {(detailSale.productos ?? []).length > 0 ? (
+                    <table className={styles.detailTable}>
+                      <thead>
+                        <tr><th>Producto</th><th>Precio</th><th>Cant.</th><th>Subtotal</th></tr>
+                      </thead>
+                      <tbody>
+                        {detailSale.productos.map((p: Record<string, unknown>, i: number) => {
+                          const pName = safeStr(p.nombre);
+                          const pQty = safeNum(p.quantity, 1);
+                          const pPrice = safeNum(p.precio);
+                          return (
+                            <tr key={i}>
+                              <td>{pName}</td>
+                              <td>{fmt(pPrice)}</td>
+                              <td>{pQty}</td>
+                              <td style={{ fontWeight: 600 }}>{fmt(pPrice * pQty)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p style={{ color: 'var(--gray)', fontSize: '0.85rem' }}>Sin detalle de productos</p>
+                  )}
+
+                  <div className={styles.detailTotal}>
+                    <span>Total</span>
+                    <strong>{fmt(detailSale.total)}</strong>
+                  </div>
+
+                  {detailSale.notas ? (
+                    <div className={styles.detailNotas}>
+                      <span>Notas:</span>
+                      <p>{detailSale.notas}</p>
+                    </div>
+                  ) : null}
+                </>
+              )}
             </div>
             <div className={styles.modalFooter}>
               {editingSale ? (
                 <>
                   <button className="btn btn-ghost" onClick={cancelEditing} disabled={editSaving}>Cancelar</button>
                   <button className="btn btn-primary" onClick={handleEditSave} disabled={editSaving}>
-                    {editSaving ? 'Guardando...' : 'Guardar cambios'}
+                    {editSaving ? 'Guardando...' : `Guardar cambios ${fmt(editTotal)}`}
                   </button>
                 </>
               ) : (
                 <>
-                  <button className="btn btn-ghost" onClick={() => { setDetailSale(null); setEditingSale(false); }}>Cerrar</button>
+                  <button className="btn btn-ghost" onClick={() => { setDetailSale(null); setEditingSale(false); setEditItems([]); }}>Cerrar</button>
                   {detailSale.canal === 'local' && detailSale.estado !== 'cancelled' && (
-                    <button className="btn btn-outline" onClick={startEditing}>Editar</button>
+                    <>
+                      <button className={styles.btnDanger} onClick={() => setConfirmDeleteId(detailSale.id)}>Eliminar</button>
+                      <button className="btn btn-outline" onClick={startEditing}>Editar</button>
+                    </>
                   )}
                 </>
               )}
             </div>
           </div>
         </div>
+      )}
+
+      {confirmDeleteId && (
+        <ConfirmModal
+          open={true}
+          title="Eliminar venta local"
+          message="Se eliminará la venta y se restaurará el stock de todos los productos. ¿Estás seguro?"
+          confirmLabel="Eliminar"
+          onConfirm={() => handleDelete(confirmDeleteId)}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       )}
 
       {/* Modal nueva venta local */}
