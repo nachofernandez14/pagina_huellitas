@@ -64,6 +64,56 @@ export default function VentasAdmin() {
   // Detail modal
   const [detailSale, setDetailSale] = useState<Sale | null>(null);
 
+  // Edit mode
+  const [editingSale, setEditingSale] = useState(false);
+  const [editFormaPago, setEditFormaPago] = useState('efectivo');
+  const [editNotas, setEditNotas] = useState('');
+  const [editGuestNombre, setEditGuestNombre] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+
+  const openEdit = (s: Sale) => {
+    setDetailSale(s);
+    setEditFormaPago(s.forma_pago || 'efectivo');
+    setEditNotas(s.notas || '');
+    setEditGuestNombre(s.guest_nombre || '');
+    setEditingSale(true);
+  };
+
+  const startEditing = () => {
+    if (!detailSale) return;
+    setEditFormaPago(detailSale.forma_pago || 'efectivo');
+    setEditNotas(detailSale.notas || '');
+    setEditGuestNombre(detailSale.guest_nombre || '');
+    setEditingSale(true);
+  };
+
+  const cancelEditing = () => setEditingSale(false);
+
+  const handleEditSave = async () => {
+    if (!detailSale) return;
+    setEditSaving(true);
+    const r = await fetch(`/api/admin/sales/${detailSale.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        forma_pago: editFormaPago,
+        notas: editNotas || null,
+        guest_nombre: editGuestNombre || null,
+      }),
+    });
+    setEditSaving(false);
+    if (r.ok) {
+      const updated = await r.json();
+      setSales((prev) => prev.map((s) => s.id === updated.id ? { ...s, ...updated } : s));
+      setDetailSale((prev) => prev ? { ...prev, ...updated } : null);
+      setEditingSale(false);
+      flash('✅ Venta actualizada');
+    } else {
+      const e = await r.json();
+      flash(`❌ ${e.error}`);
+    }
+  };
+
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 4000); };
 
   const loadSales = useCallback(async () => {
@@ -181,6 +231,7 @@ export default function VentasAdmin() {
                 <th>Fecha</th>
                 <th>Canal</th>
                 <th>Cliente</th>
+                <th>Productos</th>
                 <th>Forma pago</th>
                 <th>Total</th>
                 <th>Estado</th>
@@ -199,6 +250,15 @@ export default function VentasAdmin() {
                     </span>
                   </td>
                   <td>{s.guest_nombre ?? '—'}</td>
+                  <td className={styles.productsCell}>
+                    {(s.productos ?? []).slice(0, 3).map((p, i) => (
+                      <span key={i}>
+                        {i > 0 && ', '}
+                        {safeStr(p.nombre)}{safeNum(p.quantity, 1) > 1 ? ` x${safeNum(p.quantity)}` : ''}
+                      </span>
+                    ))}
+                    {(s.productos ?? []).length > 3 && <span style={{ color: 'var(--gray)', fontSize: '0.75rem' }}> +{s.productos.length - 3} más</span>}
+                  </td>
                   <td style={{ textTransform: 'capitalize' }}>{s.forma_pago ?? '—'}</td>
                   <td style={{ fontWeight: 600 }}>{fmt(s.total)}</td>
                   <td>
@@ -206,28 +266,33 @@ export default function VentasAdmin() {
                       {s.estado}
                     </span>
                   </td>
-                  <td>
+                  <td className={styles.actionCell}>
                     <button className={styles.btnDetail} onClick={(e) => { e.stopPropagation(); setDetailSale(s); }}>
                       Ver
                     </button>
+                    {s.canal === 'local' && s.estado !== 'cancelled' && (
+                      <button className={styles.btnDetail} onClick={(e) => { e.stopPropagation(); openEdit(s); }}>
+                        Editar
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
               {sales.length === 0 && (
-                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--gray)', padding: '2rem' }}>Sin ventas en el período seleccionado</td></tr>
+                <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--gray)', padding: '2rem' }}>Sin ventas en el período seleccionado</td></tr>
               )}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Detail modal */}
+      {/* Detail / Edit modal */}
       {detailSale && (
-        <div className={styles.overlay} onClick={() => setDetailSale(null)}>
+        <div className={styles.overlay} onClick={() => { setDetailSale(null); setEditingSale(false); }}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h2>Detalle de venta</h2>
-              <button className={styles.close} onClick={() => setDetailSale(null)}>✕</button>
+              <h2>{editingSale ? 'Editar venta local' : 'Detalle de venta'}</h2>
+              <button className={styles.close} onClick={() => { setDetailSale(null); setEditingSale(false); }}>✕</button>
             </div>
             <div className={styles.modalBody}>
               <div className={styles.detailMeta}>
@@ -241,11 +306,25 @@ export default function VentasAdmin() {
                 </div>
                 <div className={styles.detailMetaItem}>
                   <span>Cliente</span>
-                  <strong>{detailSale.guest_nombre ?? '—'}</strong>
+                  {editingSale ? (
+                    <input value={editGuestNombre} onChange={(e) => setEditGuestNombre(e.target.value)} placeholder="Nombre del cliente" />
+                  ) : (
+                    <strong>{detailSale.guest_nombre ?? '—'}</strong>
+                  )}
                 </div>
                 <div className={styles.detailMetaItem}>
                   <span>Forma de pago</span>
-                  <strong style={{ textTransform: 'capitalize' }}>{detailSale.forma_pago ?? '—'}</strong>
+                  {editingSale ? (
+                    <select value={editFormaPago} onChange={(e) => setEditFormaPago(e.target.value)}>
+                      <option value="efectivo">Efectivo</option>
+                      <option value="transferencia">Transferencia</option>
+                      <option value="tarjeta">Tarjeta</option>
+                      <option value="mp">MercadoPago</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  ) : (
+                    <strong style={{ textTransform: 'capitalize' }}>{detailSale.forma_pago ?? '—'}</strong>
+                  )}
                 </div>
                 <div className={styles.detailMetaItem}>
                   <span>Estado</span>
@@ -284,15 +363,34 @@ export default function VentasAdmin() {
                 <strong>{fmt(detailSale.total)}</strong>
               </div>
 
-              {detailSale.notas && (
+              {editingSale ? (
+                <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                  <label>Notas</label>
+                  <input value={editNotas} onChange={(e) => setEditNotas(e.target.value)} placeholder="Observaciones..." />
+                </div>
+              ) : detailSale.notas ? (
                 <div className={styles.detailNotas}>
                   <span>Notas:</span>
                   <p>{detailSale.notas}</p>
                 </div>
-              )}
+              ) : null}
             </div>
             <div className={styles.modalFooter}>
-              <button className="btn btn-ghost" onClick={() => setDetailSale(null)}>Cerrar</button>
+              {editingSale ? (
+                <>
+                  <button className="btn btn-ghost" onClick={cancelEditing} disabled={editSaving}>Cancelar</button>
+                  <button className="btn btn-primary" onClick={handleEditSave} disabled={editSaving}>
+                    {editSaving ? 'Guardando...' : 'Guardar cambios'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button className="btn btn-ghost" onClick={() => { setDetailSale(null); setEditingSale(false); }}>Cerrar</button>
+                  {detailSale.canal === 'local' && detailSale.estado !== 'cancelled' && (
+                    <button className="btn btn-outline" onClick={startEditing}>Editar</button>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

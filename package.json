@@ -21,6 +21,9 @@
     "react-dom": "19.2.4",
     "resend": "^6.14.0"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["sharp", "unrs-resolver"]
+  },
   "devDependencies": {
     "@types/node": "^20.17.57",
     "@types/papaparse": "^5.5.2",

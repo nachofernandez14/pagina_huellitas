@@ -86,7 +86,6 @@ export async function PATCH(
     descripcion: i.descripcion,
     cantidad: i.cantidad,
     precio_unitario: i.precio_unitario,
-    subtotal: i.cantidad * i.precio_unitario,
   }));
 
   const { error: insErr } = await admin.from('supplier_order_items').insert(newItems);

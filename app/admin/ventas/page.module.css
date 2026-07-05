@@ -45,6 +45,8 @@
 .dropdownEmpty { padding: 0.5rem 0.875rem; font-size: 0.82rem; color: var(--gray); }
 
 .saleRow { cursor: pointer; }
+.productsCell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8rem; color: var(--dark); }
+.actionCell { display: flex; gap: 0.35rem; align-items: center; white-space: nowrap; }
 .btnDetail { background: none; border: 1px solid var(--gray-light); border-radius: var(--radius-sm); padding: 0.2rem 0.6rem; font-size: 0.75rem; cursor: pointer; color: var(--green-dark); white-space: nowrap; }
 .btnDetail:hover { background: #f0fdf4; }
 
