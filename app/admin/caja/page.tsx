@@ -71,7 +71,8 @@ function totalVentasCaja(e: CajaEntry) {
   const locales =
     (e.ventas_locales_efectivo ?? 0) +
     (e.ventas_locales_transferencia ?? 0) +
-    (e.ventas_locales_tarjeta ?? 0);
+    (e.ventas_locales_tarjeta ?? 0) +
+    (e.ventas_locales_otro ?? 0);
   const pendiente = e.ventas_efectivo + e.ventas_tarjeta + e.ventas_transferencia;
   return pendiente + locales;
 }
@@ -222,7 +223,7 @@ export default function CajaPage() {
         fecha: existing.fecha,
         saldo_inicial: String(existing.saldo_inicial),
         ventas_efectivo: String(ptes.efectivo + loc.efectivo),
-        ventas_tarjeta: String(ptes.tarjeta + loc.tarjeta),
+        ventas_tarjeta: String(ptes.tarjeta + loc.tarjeta + loc.otro),
         ventas_transferencia: String(transfTotal),
         notas: existing.notas ?? ''
       });
@@ -244,7 +245,7 @@ export default function CajaPage() {
         fecha: existing.fecha,
         saldo_inicial: String(existing.saldo_inicial),
         ventas_efectivo: String(ptes.efectivo + loc.efectivo),
-        ventas_tarjeta: String(ptes.tarjeta + loc.tarjeta),
+        ventas_tarjeta: String(ptes.tarjeta + loc.tarjeta + loc.otro),
         ventas_transferencia: String(transfTotal),
         notas: existing.notas ?? ''
       });
@@ -264,7 +265,7 @@ export default function CajaPage() {
       fecha: entry.fecha,
       saldo_inicial: String(entry.saldo_inicial),
       ventas_efectivo: String(ptes.efectivo + loc.efectivo),
-      ventas_tarjeta: String(ptes.tarjeta + loc.tarjeta),
+      ventas_tarjeta: String(ptes.tarjeta + loc.tarjeta + loc.otro),
       ventas_transferencia: String(transfTotal),
       notas: entry.notas ?? ''
     });
@@ -517,7 +518,7 @@ export default function CajaPage() {
                   </div>
 
                   <div className={styles.cuadreItem}>
-                    <label>Tarjeta (total recaudado)</label>
+                    <label>Tarjeta / QR (total recaudado)</label>
                     <input
                       type="number" min={0}
                       value={form.ventas_tarjeta}
@@ -527,7 +528,7 @@ export default function CajaPage() {
                       placeholder="0"
                     />
                     <div className={styles.balanceLine}>
-                      <span>− Ventas locales: {fmt(bolsas.tarjeta)}</span>
+                      <span>− Ventas locales (tarjeta+QR): {fmt(totalPosnet)}</span>
                       <span className={styles.sueldoTag}>= Pendiente: {fmt(pendiente.tarjeta)}</span>
                     </div>
                   </div>

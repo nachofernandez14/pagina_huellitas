@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
       saldo_inicial: Number(saldo_inicial) || 0,
       ventas_efectivo: pendiente(totalEf, locales.efectivo),
       ventas_mercadopago: Number(ventas_mercadopago) || 0,
-      ventas_tarjeta: pendiente(totalTj, locales.tarjeta),
+      ventas_tarjeta: pendiente(totalTj, locales.tarjeta + locales.otro),
       ventas_transferencia: pendiente(totalTr, locales.transferencia),
       ventas_locales_efectivo: locales.efectivo,
       ventas_locales_transferencia: locales.transferencia,
