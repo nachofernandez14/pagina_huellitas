@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth';
 import { generateProductSlug } from '@/lib/slug';
 import { revalidateTag } from 'next/cache';
@@ -8,31 +6,21 @@ import type { Product } from '@/types';
 
 // GET /api/products?categoria=perros&q=agility&limit=50&offset=0&activo=all
 export async function GET(req: NextRequest) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
   const { searchParams } = req.nextUrl;
   const categoria = searchParams.get('categoria') ?? undefined;
   const q = searchParams.get('q') ?? undefined;
   const limit = Math.min(parseInt(searchParams.get('limit') ?? '50', 10), 1000);
   const offset = parseInt(searchParams.get('offset') ?? '0', 10);
-  const wantsAll = searchParams.get('activo') === 'all';
 
-  const supabase = await createClient();
-
-  // Only admins can query inactive products
-  let all = false;
-  if (wantsAll) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: profile } = await supabase.from('profiles').select('rol').eq('id', user.id).single();
-      if (profile?.rol === 'admin') all = true;
-    }
-  }
-  let query = supabase
+  let query = admin
     .from('products')
     .select('*', { count: 'exact' })
     .order('nombre')
     .range(offset, offset + limit - 1);
 
-  if (!all) query = query.eq('activo', true);
   if (categoria) query = query.eq('categoria', categoria);
   if (q) query = query.ilike('nombre', `%${q}%`);
 

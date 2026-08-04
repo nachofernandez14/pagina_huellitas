@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import styles from '../../auth.module.css';
 
 export default function NuevaContrasenaPage() {
+  const router = useRouter();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,12 +15,19 @@ export default function NuevaContrasenaPage() {
   const [ready, setReady] = useState(false);
   const [invalidLink, setInvalidLink] = useState(false);
   const readyRef = useRef(false);
-  const router = useRouter();
 
   useEffect(() => {
     const supabase = createClient();
 
-    const markReady = () => {
+    const establishSession = async (accessToken: string, refreshToken: string) => {
+      await fetch('/api/auth/recovery/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ accessToken, refreshToken }),
+      });
+    };
+
+    const markReady = async () => {
       readyRef.current = true;
       setReady(true);
     };
@@ -36,27 +44,35 @@ export default function NuevaContrasenaPage() {
       const refreshToken = hashParams.get('refresh_token') ?? '';
       if (accessToken) {
         supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-          .then(({ error: err }) => {
+          .then(async ({ error: err }) => {
             if (!err) {
+              await establishSession(accessToken, refreshToken);
               // Limpiar el hash de la URL para que no quede visible
               window.history.replaceState(null, '', window.location.pathname);
-              markReady();
+              await markReady();
             }
           });
       }
     }
 
-    // Caso 2: código PKCE en query param (?code=...)
+    // Caso 2: código PKCE en query param (?code=...) — exchange en el cliente para
+    // obtener los tokens, luego la sesión httpOnly se establece en el servidor.
     const code = new URLSearchParams(window.location.search).get('code');
     if (code) {
       supabase.auth.exchangeCodeForSession(code)
-        .then(({ error: err }) => { if (!err) markReady(); });
+        .then(async ({ data, error }) => {
+          if (!error && data.session) {
+            await establishSession(data.session.access_token, data.session.refresh_token);
+            await markReady();
+          }
+        });
     }
 
-    // Fallback: sesión ya activa
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) markReady();
-    });
+    // Fallback: sesión ya activa en el servidor
+    fetch('/api/auth/user', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then((res) => res.json())
+      .then((data) => { if (data.user) markReady(); })
+      .catch(() => {});
 
     const timeout = setTimeout(() => {
       if (!readyRef.current) setInvalidLink(true);
@@ -80,14 +96,21 @@ export default function NuevaContrasenaPage() {
       return;
     }
     setLoading(true);
-    const supabase = createClient();
-    const { error: updateError } = await supabase.auth.updateUser({ password });
+    const res = await fetch('/api/auth/recovery/update-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify({ password }),
+    });
+    const data = await res.json().catch(() => ({}));
     setLoading(false);
-    if (updateError) {
-      setError(updateError.message);
+    if (!res.ok) {
+      setError(data.error ?? 'Error al actualizar la contraseña');
     } else {
       // Sign out so user logs in fresh with new password
-      await supabase.auth.signOut();
+      await fetch('/api/auth/signout', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      }).catch(() => {});
       router.push('/login?resetOk=1');
     }
   };

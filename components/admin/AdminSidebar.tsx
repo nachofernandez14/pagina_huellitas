@@ -4,7 +4,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import styles from './AdminSidebar.module.css';
 
 function IconDashboard() {
@@ -139,9 +138,12 @@ export default function AdminSidebar() {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await fetch('/api/auth/signout', {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    }).catch(() => {});
     router.push('/login');
+    router.refresh();
   };
 
   const closeMenu = () => setIsOpen(false);

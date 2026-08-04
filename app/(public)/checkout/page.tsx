@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
-import { createClient } from '@/lib/supabase/client';
+
 import type { GuestCheckoutData } from '@/types';
 import { DeliveryTypeSelector } from './DeliveryTypeSelector';
 import { ZoneAddressSelector } from './ZoneAddressSelector';
@@ -31,10 +31,13 @@ export default function CheckoutPage() {
 
   // Check if user is already logged in
   useEffect(() => {
-    createClient().auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setLoggedUser({ email: session.user.email ?? '' });
-      setAuthChecked(true);
-    });
+    fetch('/api/auth/user', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) setLoggedUser({ email: data.user.email ?? '' });
+      })
+      .catch(() => {})
+      .finally(() => setAuthChecked(true));
   }, []);
 
   // On every mount: cancel any MP order that was abandoned (e.g. user navigated away)

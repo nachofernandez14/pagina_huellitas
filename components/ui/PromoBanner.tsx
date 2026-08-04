@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
 import styles from './PromoBanner.module.css';
 
 const PET_TYPES = ['Perro', 'Gato', 'Otro'];
@@ -17,11 +16,11 @@ export default function PromoBanner() {
   const [alreadyRequested, setAlreadyRequested] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUserEmail(session?.user?.email ?? null);
-      setAuthLoading(false);
-    });
+    fetch('/api/auth/user', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then((res) => res.json())
+      .then((data) => setUserEmail(data.user?.email ?? null))
+      .catch(() => setUserEmail(null))
+      .finally(() => setAuthLoading(false));
     if (localStorage.getItem(STORAGE_KEY)) setAlreadyRequested(true);
   }, []);
 

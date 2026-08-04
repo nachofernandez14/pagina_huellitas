@@ -79,6 +79,13 @@ function formatPrice(n: number | null) {
   }).format(n);
 }
 
+function toJsonLd(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/&/g, '\\u0026')
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e');
+}
+
 export default async function ProductDetailPage({ params }: Props) {
   const { slug } = await params;
   const product = await getProductBySlugOrId(slug);
@@ -132,7 +139,7 @@ export default async function ProductDetailPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: toJsonLd({
             '@context': 'https://schema.org',
             '@type': 'Product',
             '@id': productUrl,
@@ -180,7 +187,7 @@ export default async function ProductDetailPage({ params }: Props) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: toJsonLd({
               '@context': 'https://schema.org',
               '@type': 'BreadcrumbList',
               itemListElement: [

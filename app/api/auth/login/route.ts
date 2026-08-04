@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { verifyTurnstileToken } from '@/lib/turnstile';
+import { authCookieOptions } from '@/lib/supabase/cookies-options';
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: authCookieOptions,
       cookies: {
         getAll() {
           return req.cookies.getAll();
