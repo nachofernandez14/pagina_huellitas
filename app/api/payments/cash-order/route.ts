@@ -2,9 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createOrder } from '@/lib/orders';
 import { sendOrderConfirmationEmail, sendNewOrderNotificationToAdmin } from '@/lib/email';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import type { CartItem, GuestCheckoutData } from '@/types';
 
 export async function POST(req: NextRequest) {
+  // Rate limiting: max 10 cash orders per IP per 15 minutes
+  const ip = getClientIp(req);
+  const rl = await checkRateLimit(`cash-order:${ip}`, 10, 15 * 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Demasiadas solicitudes. Esperá unos minutos e intentá nuevamente.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+      }
+    );
+  }
+
   const body = await req.json() as {
     items: CartItem[];
     total: number;
