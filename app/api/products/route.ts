@@ -22,7 +22,10 @@ export async function GET(req: NextRequest) {
     .range(offset, offset + limit - 1);
 
   if (categoria) query = query.eq('categoria', categoria);
-  if (q) query = query.ilike('nombre', `%${q}%`);
+  if (q) {
+    const pattern = `%${q}%`;
+    query = query.or(`nombre.ilike.${pattern},kg.ilike.${pattern}`);
+  }
 
   const { data, error, count } = await query;
   if (error) {

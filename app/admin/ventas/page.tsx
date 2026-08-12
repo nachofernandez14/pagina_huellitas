@@ -80,14 +80,8 @@ export default function VentasAdmin() {
   // Delete confirmation
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const openEdit = async (s: Sale) => {
-    if (!products.length) {
-      const r = await fetch('/api/products?limit=300&offset=0');
-      if (r.ok) {
-        const json = await r.json();
-        setProducts(json.data ?? []);
-      }
-    }
+  const openEdit = (s: Sale) => {
+    setProducts([]);
     setDetailSale(s);
     setEditFormaPago(s.forma_pago || 'efectivo');
     setEditNotas(s.notas || '');
@@ -198,14 +192,31 @@ export default function VentasAdmin() {
 
   useEffect(() => { loadSales(); }, [loadSales]);
 
-  const openModal = async () => {
-    if (!products.length) {
-      const r = await fetch('/api/products?limit=300&offset=0');
-      if (r.ok) {
-        const json = await r.json();
-        setProducts(json.data ?? []);
-      }
+  const searchProducts = useCallback(async (q: string) => {
+    if (!q.trim()) { setProducts([]); return; }
+    const r = await fetch(`/api/products?q=${encodeURIComponent(q.trim())}&limit=20`);
+    if (r.ok) {
+      const json = await r.json();
+      setProducts(json.data ?? []);
+    } else {
+      setProducts([]);
     }
+  }, []);
+
+  useEffect(() => {
+    if (!productQuery.trim()) return;
+    const t = setTimeout(() => searchProducts(productQuery), 250);
+    return () => clearTimeout(t);
+  }, [productQuery, searchProducts]);
+
+  useEffect(() => {
+    if (!editProductQuery.trim()) return;
+    const t = setTimeout(() => searchProducts(editProductQuery), 250);
+    return () => clearTimeout(t);
+  }, [editProductQuery, searchProducts]);
+
+  const openModal = () => {
+    setProducts([]);
     setItems([]);
     setGuestNombre('');
     setFormaPago('efectivo');
