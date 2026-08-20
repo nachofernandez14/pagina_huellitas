@@ -126,22 +126,17 @@ export default function Footer() {
           </div>
         </div>
         <div className={styles.poweredBy}>
-          <a
-            href="https://www.bitandbrain.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.poweredByLink}
-          >
-            <span className={styles.poweredByText}>Powered by</span>
-            <Image
-              src="/images/bitandbrain.png"
-              alt="Bit and Brain Software Factory"
-              width={110}
-              height={56}
-              style={{ objectFit: 'contain' }}
-              className={styles.poweredByLogo}
-            />
-          </a>
+          <p className={styles.poweredByText}>
+            Desarrollado por{' '}
+            <a
+              href="https://portfolio-ignaciof.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.poweredByLink}
+            >
+              Ignacio Fernandez
+            </a>
+          </p>
         </div>
       </div>
     </footer>
