@@ -12,7 +12,10 @@ interface Props {
   product: Product;
   /** All products in the group (same nombre). If provided and length > 1, shows "Ver opciones" instead of add-to-cart. */
   groupProducts?: Product[];
+  imageSizes?: string;
 }
+
+const GRID_IMAGE_SIZES = '(max-width: 375px) calc(100vw - 40px), (max-width: 551px) calc((100vw - 56px) / 2), (max-width: 727px) calc((100vw - 72px) / 3), (max-width: 768px) calc((100vw - 88px) / 4), (max-width: 991px) calc((100vw - 88px) / 3), (max-width: 1199px) calc((100vw - 112px) / 4), 272px';
 
 function formatPrice(n: number | null): string {
   if (n === null) return 'Consultar precio';
@@ -23,7 +26,7 @@ function formatPrice(n: number | null): string {
   }).format(n);
 }
 
-export default function ProductCard({ product, groupProducts }: Props) {
+export default function ProductCard({ product, groupProducts, imageSizes }: Props) {
   const { addItem } = useCart();
 
   const productHref = productUrl(product.slug, product.id);
@@ -54,7 +57,7 @@ export default function ProductCard({ product, groupProducts }: Props) {
           src={imgSrc}
           alt={altText}
           fill
-          sizes="(max-width: 768px) 50vw, 220px"
+          sizes={imageSizes ?? GRID_IMAGE_SIZES}
           className={styles.img}
           loading="lazy"
           unoptimized={imgFailed}

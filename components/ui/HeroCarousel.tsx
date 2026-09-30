@@ -66,8 +66,9 @@ export default function HeroCarousel() {
             src={slide.src}
             alt={slide.alt}
             fill
+            sizes="100vw"
             style={{ objectFit: 'cover' }}
-            priority={i === 0}
+            preload={i === 0}
           />
           <div className={styles.overlay} />
           <div className={styles.content}>

@@ -122,7 +122,7 @@ export default function Navbar() {
 
             {/* Logo */}
             <Link href="/" className={styles.logo}>
-              <Image src="/images/logo_huellitas.png" alt="Huellitas Petshop" width={72} height={72} priority sizes="72px" style={{ objectFit: 'contain' }} />
+              <Image src="/images/logo_huellitas.png" alt="Huellitas Petshop" width={72} height={72} sizes="72px" style={{ objectFit: 'contain' }} />
               <span className={styles.brandName}>Huellitas<span className={styles.brandSub}>Petshop</span></span>
             </Link>
 

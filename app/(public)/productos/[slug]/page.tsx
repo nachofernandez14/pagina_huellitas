@@ -238,10 +238,10 @@ export default async function ProductDetailPage({ params }: Props) {
               src={imageSrc}
               alt={`${product.nombre}${product.kg ? ` ${product.kg}` : ''} — ${categoryLabel[product.categoria] ?? product.categoria} — Huellitas Petshop Mendoza`}
               fill
-              sizes="(max-width: 768px) 100vw, 50vw"
+              sizes="(max-width: 600px) calc(100vw - 40px), (max-width: 960px) calc((100vw - 64px) / 2), (max-width: 1199px) calc((100vw - 104px) * 0.375), 411px"
               className={styles.img}
-              unoptimized={!imageSrc.startsWith('http') && !imageSrc.includes('supabase')}
-              priority
+              unoptimized={imageSrc.endsWith('.svg')}
+              preload
             />
             {product.promo_label && (
               <span className={styles.promoBadge}>{product.promo_label}</span>
@@ -381,7 +381,11 @@ export default async function ProductDetailPage({ params }: Props) {
             <h2 className={styles.relatedTitle}>Productos relacionados</h2>
             <div className={styles.relatedGrid}>
               {related.map((p) => (
-                <ProductCard key={p.id} product={p} />
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  imageSizes="(max-width: 480px) calc((100vw - 52px) / 2), (max-width: 1024px) calc((100vw - 60px) / 2), (max-width: 1199px) calc((100vw - 100px) / 4), 275px"
+                />
               ))}
             </div>
           </section>

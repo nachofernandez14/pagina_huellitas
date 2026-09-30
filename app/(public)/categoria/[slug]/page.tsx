@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import ProductosCatalog from '@/components/products/ProductosCatalog';
@@ -26,7 +27,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function CategoriaPage({ params }: Props) {
+export default function CategoriaPage({ params }: Props) {
+  return (
+    <Suspense fallback={null}>
+      <CategoriaContent params={params} />
+    </Suspense>
+  );
+}
+
+async function CategoriaContent({ params }: Props) {
   const { slug } = await params;
   if (!isValidCategorySlug(slug)) notFound();
 

@@ -38,7 +38,10 @@ export default function OffersCarousel({ products }: Props) {
       <div className={`${styles.track} ${!hasNavigation ? styles.trackCentered : ''}`}>
         {visible.map((p) => (
           <div key={p.id} className={styles.item}>
-            <ProductCard product={p} />
+            <ProductCard
+              product={p}
+              imageSizes="(max-width: 460px) calc(100vw - 40px), (max-width: 700px) calc((100vw - 64px) / 2), (max-width: 1199px) calc((100vw - 88px) / 3), 371px"
+            />
           </div>
         ))}
       </div>
