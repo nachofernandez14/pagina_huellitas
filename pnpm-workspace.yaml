@@ -1,3 +1,9 @@
 allowBuilds:
   sharp: true
   unrs-resolver: true
+
+# mercadopago@2.x pins uuid@^9, which is affected by GHSA-w5hq-g745-h8pq
+# (missing buffer bounds check in v3/v5/v6). It only calls v4(), whose API is
+# unchanged in uuid 11, so forcing the major upgrade is safe.
+overrides:
+  uuid: ^11.1.1

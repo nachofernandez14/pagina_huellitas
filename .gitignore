@@ -24,6 +24,15 @@
 .DS_Store
 *.pem
 
+# certificados y llaves TLS (prevenir fugas de secretos)
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+*.jks
+ssl*.txt
+
 # debug
 npm-debug.log*
 yarn-debug.log*

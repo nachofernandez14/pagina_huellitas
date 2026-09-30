@@ -4,6 +4,7 @@ import { useState, Suspense, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { TurnstileWidget } from '@/components/ui/TurnstileWidget';
+import { getSafeInternalRedirect } from '@/lib/security/url';
 import styles from '../auth.module.css';
 
 function LoginForm() {
@@ -20,7 +21,7 @@ function LoginForm() {
   const confirmed = searchParams.get('confirmed') === '1';
   const registered = searchParams.get('registered') === '1';
   const verifyError = searchParams.get('error');
-  const redirect = searchParams.get('redirect') || '/perfil';
+  const redirect = getSafeInternalRedirect(searchParams.get('redirect'), '/perfil');
 
   const EMAIL_MAX = 254;
   const PASS_MAX = 128;

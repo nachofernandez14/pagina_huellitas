@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { markOrderPaid, cancelOrder } from '@/lib/orders';
 import { verifyMPPayment } from '@/lib/mercadopago';
 
@@ -60,13 +60,13 @@ function verifyMPSignature(req: NextRequest, rawBody?: string): boolean {
 
   const dataId = dataIdQuery ?? dataIdBody;
   const manifest = `${ts};${dataId ?? ''}`;
-  const expected = createHmac('sha256', secret).update(manifest).digest('hex');
-  
-  const isValid = expected === hash;
+  const expected = createHmac('sha256', secret).update(manifest).digest();
+  const received = Buffer.from(hash ?? '', 'hex');
+  const isValid = received.length === expected.length && timingSafeEqual(received, expected);
   if (!isValid) {
     console.error('[webhook] Signature verification failed', {
       received: hash,
-      expected,
+      expected: expected.toString('hex'),
       manifest,
     });
   }

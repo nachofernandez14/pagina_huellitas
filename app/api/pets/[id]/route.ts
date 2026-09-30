@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getSafeStorageKey } from '@/lib/security/url';
 import { getCurrentUserId } from '@/lib/auth';
 import type { LostFoundPet } from '@/types';
 
@@ -179,7 +180,7 @@ export async function DELETE(
       const adminClient = createAdminClient();
       const url = new URL(pet.image_url);
       const pathParts = url.pathname.split('/');
-      const storagePath = pathParts.slice(pathParts.indexOf('mascotas') + 1).join('/');
+      const storagePath = getSafeStorageKey(pathParts.slice(pathParts.indexOf('mascotas') + 1).join('/'));
       if (storagePath) {
         await adminClient.storage.from('mascotas').remove([storagePath]);
       }

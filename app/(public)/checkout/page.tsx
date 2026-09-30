@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
+import { getSafeInitPoint } from '@/lib/security/url';
 
 import type { GuestCheckoutData } from '@/types';
 import { DeliveryTypeSelector } from './DeliveryTypeSelector';
@@ -219,8 +220,14 @@ export default function CheckoutPage() {
       }
 
       const { init_point, orderId, preferenceId, cancelToken } = await res.json();
+      const safeInitPoint = getSafeInitPoint(init_point);
+      if (!safeInitPoint) {
+        setError('No se pudo generar el pago en MercadoPago. Intentá nuevamente.');
+        setLoading(false);
+        return;
+      }
       sessionStorage.setItem('mp_pending', JSON.stringify({ orderId, preferenceId, cancelToken }));
-      window.location.href = init_point;
+      window.location.href = safeInitPoint;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error inesperado');
       setLoading(false);
