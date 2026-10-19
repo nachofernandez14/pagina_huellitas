@@ -57,7 +57,9 @@ export default function ConfiguracionPage() {
             <li>Ir a <strong>Tu negocio → Configuraciones → Credenciales</strong></li>
             <li>Copiá el <strong>Access Token de producción</strong> (empieza con <code>APP_USR-</code>)</li>
             <li>Agregalo como variable de entorno <code>MP_ACCESS_TOKEN</code> en tu servidor o panel de Vercel</li>
-            <li>Reiniciá el servidor para que los cambios tomen efecto</li>
+            <li>En Mercado Pago, configurá la URL de notificaciones como <code>{'https://tu-dominio/api/payments/webhook'}</code> y el evento de pagos</li>
+            <li>Guardá la clave de firma de esa integración como <code>MP_WEBHOOK_SECRET</code> en el servidor</li>
+            <li>Reiniciá o redeplegá para que los cambios tomen efecto</li>
           </ol>
           <p className={styles.infoNote}>
             El token se almacena exclusivamente en variables de entorno para mayor seguridad.

@@ -10,7 +10,7 @@ const allowTestWebhooks = isDev && process.env.MP_IGNORE_PAYMENT_VERIFICATION ==
 /**
  * Verifica la firma del webhook de Mercado Pago
  * Mercado Pago envía: x-signature = "ts=timestamp,v1=hash"
- * El hash se calcula como: HMAC-SHA256(ts;id)
+ * El hash se calcula sobre id, request-id y ts según el formato de MP.
  */
 function verifyMPSignature(req: NextRequest, rawBody?: string): boolean {
   if (skipSignatureVerification) {
@@ -18,17 +18,18 @@ function verifyMPSignature(req: NextRequest, rawBody?: string): boolean {
     return true;
   }
 
-  const secret = process.env.CLAVE_SECRETA;
+  const secret = process.env.MP_WEBHOOK_SECRET ?? process.env.CLAVE_SECRETA;
   if (!secret) {
     if (process.env.NODE_ENV === 'production') {
-      console.error('[webhook] CLAVE_SECRETA no configurada — rechazando webhook');
+      console.error('[webhook] MP_WEBHOOK_SECRET no configurada — rechazando webhook');
       return false;
     }
-    console.warn('[webhook] CLAVE_SECRETA no configurada, omitiendo verificación de firma (solo dev)');
+    console.warn('[webhook] MP_WEBHOOK_SECRET no configurada, omitiendo verificación de firma (solo dev)');
     return true;
   }
 
   const xSignature = req.headers.get('x-signature');
+  const requestId = req.headers.get('x-request-id');
   const dataIdQuery = new URL(req.url).searchParams.get('data.id');
   let dataIdBody: string | undefined;
 
@@ -44,8 +45,12 @@ function verifyMPSignature(req: NextRequest, rawBody?: string): boolean {
   const ts = parts['ts'];
   const hash = parts['v1'];
   
-  if (!ts || !hash) {
-    console.error('[webhook] Invalid signature format', { ts: !!ts, hash: !!hash });
+  if (!ts || !hash || !requestId) {
+    console.error('[webhook] Invalid signature headers', {
+      ts: !!ts,
+      hash: !!hash,
+      requestId: !!requestId,
+    });
     return false;
   }
 
@@ -58,17 +63,18 @@ function verifyMPSignature(req: NextRequest, rawBody?: string): boolean {
     }
   }
 
-  const dataId = dataIdQuery ?? dataIdBody;
-  const manifest = `${ts};${dataId ?? ''}`;
+  const dataId = (dataIdQuery ?? dataIdBody)?.toLowerCase();
+  if (!dataId) {
+    console.error('[webhook] Payment ID missing from signature manifest');
+    return false;
+  }
+
+  const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
   const expected = createHmac('sha256', secret).update(manifest).digest();
   const received = Buffer.from(hash ?? '', 'hex');
   const isValid = received.length === expected.length && timingSafeEqual(received, expected);
   if (!isValid) {
-    console.error('[webhook] Signature verification failed', {
-      received: hash,
-      expected: expected.toString('hex'),
-      manifest,
-    });
+    console.error('[webhook] Signature verification failed');
   }
   
   return isValid;
