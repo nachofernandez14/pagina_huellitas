@@ -29,15 +29,23 @@ export default function CheckoutPage() {
   const [mode, setMode] = useState<'guest' | 'login'>('guest');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [loggedUser, setLoggedUser] = useState<{ email: string } | null>(null);
+  const [loggedUser, setLoggedUser] = useState<{ email: string; emailConfirmed: boolean } | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [resendingConfirmation, setResendingConfirmation] = useState(false);
+  const [confirmationResent, setConfirmationResent] = useState(false);
+  const [confirmationError, setConfirmationError] = useState('');
 
   // Check if user is already logged in
   useEffect(() => {
     fetch('/api/auth/user', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then((res) => res.json())
       .then((data) => {
-        if (data.user) setLoggedUser({ email: data.user.email ?? '' });
+        if (data.user) {
+          setLoggedUser({
+            email: data.user.email ?? '',
+            emailConfirmed: data.user.emailConfirmed === true,
+          });
+        }
       })
       .catch(() => {})
       .finally(() => setAuthChecked(true));
@@ -164,6 +172,10 @@ export default function CheckoutPage() {
   const handleLoggedInCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!loggedUser?.emailConfirmed) {
+      setError('Tu email no está confirmado. Confirmalo para poder realizar compras.');
+      return;
+    }
     if (!tipoEntrega) {
       setError('Selecciona un tipo de entrega');
       return;
@@ -189,6 +201,30 @@ export default function CheckoutPage() {
       await proceedCashOrder(undefined, delivery);
     } else {
       await proceedToPayment(undefined, delivery);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!loggedUser?.email || resendingConfirmation) return;
+    setResendingConfirmation(true);
+    setConfirmationError('');
+    setConfirmationResent(false);
+    try {
+      const res = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ email: loggedUser.email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setConfirmationError(data.error ?? 'No se pudo enviar el correo. Intentá nuevamente más tarde.');
+      } else {
+        setConfirmationResent(true);
+      }
+    } catch {
+      setConfirmationError('No se pudo enviar el correo. Revisá tu conexión e intentá nuevamente.');
+    } finally {
+      setResendingConfirmation(false);
     }
   };
 
@@ -435,6 +471,30 @@ export default function CheckoutPage() {
                   <span>Comprando como <strong>{loggedUser.email}</strong></span>
                 </div>
 
+                {!loggedUser.emailConfirmed && (
+                  <div role="alert" style={{ background: '#fffbeb', border: '1px solid #f59e0b88', borderRadius: 'var(--radius-sm)', padding: '1rem', marginBottom: '1rem' }}>
+                    <strong style={{ color: '#92400e' }}>Tu email no está confirmado; no podés comprar todavía.</strong>
+                    <p style={{ fontSize: '0.875rem', color: '#78350f', margin: '0.4rem 0 0.75rem' }}>
+                      Confirmá el enlace enviado a <strong>{loggedUser.email}</strong> y después volvé a realizar tu compra.
+                    </p>
+                    {confirmationResent ? (
+                      <p style={{ color: 'var(--green-dark)', fontSize: '0.85rem', fontWeight: 600, margin: 0 }}>
+                        Enviamos el enlace de confirmación. Revisá tu casilla y la carpeta de spam.
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        disabled={resendingConfirmation}
+                        onClick={handleResendConfirmation}
+                      >
+                        {resendingConfirmation ? 'Enviando…' : 'Reenviar email de confirmación'}
+                      </button>
+                    )}
+                    {confirmationError && <p style={{ color: 'var(--error)', fontSize: '0.8rem', margin: '0.5rem 0 0' }}>{confirmationError}</p>}
+                  </div>
+                )}
+
                 {error && <div className={styles.errorBox}>{error}</div>}
 
                 {/* ── Entrega ── */}
@@ -461,7 +521,7 @@ export default function CheckoutPage() {
                     type="submit"
                     className={`btn w-full ${metodoPago === 'efectivo' ? 'btn-primary' : 'btn-accent'}`}
                     style={{ padding: '0.875rem', fontSize: '1rem', marginTop: '1.25rem' }}
-                    disabled={loading}
+                    disabled={loading || !loggedUser.emailConfirmed}
                   >
                     {loading ? 'Procesando...' : metodoPago === 'efectivo' ? (
                       <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>

@@ -13,6 +13,7 @@ export async function GET() {
     user: {
       id: user.id,
       email: user.email ?? null,
+      emailConfirmed: !!user.email_confirmed_at,
     },
   });
 }
