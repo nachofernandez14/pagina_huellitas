@@ -58,6 +58,12 @@ export default function PrivacidadPage() {
         <ul>
           <li>Cookies de sesión para mantener tu inicio de sesión activo (cookies esenciales)</li>
           <li>Carrito de compras guardado en el almacenamiento local de tu navegador (<em>localStorage</em>)</li>
+          <li>
+            <strong>Dirección IP y tipo de navegador (user-agent)</strong>, registrados al momento de iniciar
+            un pedido en la web. Esta información se usa exclusivamente para prevenir fraudes y pedidos
+            falsos, resolver problemas de pagos y conservar la seguridad del sitio. No se muestra públicamente
+            ni se comparte con fines publicitarios.
+          </li>
         </ul>
 
         <div className={styles.highlight}>
@@ -93,6 +99,8 @@ export default function PrivacidadPage() {
         <ul>
           <li>Gestionar tu cuenta y pedidos.</li>
           <li>Enviarte confirmaciones de compra y actualizaciones de estado.</li>
+          <li>Verificar tu email al realizar pedidos en la web (compras sin cuenta).</li>
+          <li>Prevenir fraudes y pedidos falsos, e investigar incidentes de seguridad.</li>
           <li>Contactarte ante incidencias con tu pedido.</li>
           <li>Cumplir con obligaciones legales y fiscales.</li>
         </ul>
@@ -107,6 +115,11 @@ export default function PrivacidadPage() {
           Los datos se almacenan en <strong>Supabase</strong> (infraestructura en la nube con
           cifrado en tránsito TLS y en reposo). Las contraseñas nunca son almacenadas en texto
           plano — Supabase Auth usa hashing seguro (bcrypt).
+        </p>
+        <p>
+          La información técnica de pedidos (IP y user-agent) se guarda en un registro privado
+          con acceso restringido y se conserva por un plazo máximo de <strong>90 días</strong>.
+          Al momento de borrar una orden, su registro técnico asociado se elimina junto con ella.
         </p>
         <p>
           Conservamos tus datos mientras tengas una cuenta activa. Al solicitarlo, eliminamos

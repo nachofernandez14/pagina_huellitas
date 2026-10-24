@@ -24,7 +24,46 @@ interface AdminOrder {
   forma_pago: string | null;
   notas: string | null;
   productos: CartItem[];
+  mp_preference_id: string | null;
   mp_payment_id: string | null;
+  payment_status: string | null;
+  payment_verified_at: string | null;
+  payment_received: number | null;
+  contact_verified: boolean | null;
+}
+
+interface OrderEvent {
+  id: number;
+  event: string;
+  source: string | null;
+  ip: string | null;
+  user_agent: string | null;
+  detail: Record<string, unknown> | null;
+  created_at: string;
+}
+
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  pending: 'Sin pago',
+  in_process: 'En proceso',
+  approved: 'Aprobado ✓',
+  rejected: 'Rechazado',
+  cancelled: 'Cancelado',
+  refunded: 'Reembolsado',
+  charged_back: 'Contracargo',
+  cash_pending: 'Paga al recibir',
+};
+
+function PaymentStatusPill({ order }: { order: AdminOrder }) {
+  const isCash = order.forma_pago === 'efectivo';
+  if (isCash) {
+    return <span className={styles.payOther}>💵 Efectivo al recibir</span>;
+  }
+  const status = order.payment_status ?? 'pending';
+  const label = PAYMENT_STATUS_LABELS[status] ?? status;
+  if (status === 'approved') {
+    return <span className={styles.payMP}>{label}</span>;
+  }
+  return <span style={{ display: 'inline-block', padding: '0.25rem 0.55rem', borderRadius: 999, fontSize: '0.72rem', fontWeight: 600, background: '#fff7ed', color: '#9a3412' }}>{label}</span>;
 }
 
 const ESTADO_LABELS: Record<OrderEstado, string> = {
@@ -105,11 +144,15 @@ export default function PedidosAdmin() {
   const [estadoFilter, setEstadoFilter] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [search, setSearch] = useState('');
+  const [reconciling, setReconciling] = useState(false);
 
   // Detail modal
   const [selected, setSelected] = useState<AdminOrder | null>(null);
   const [newEstado, setNewEstado] = useState<OrderEstado>('paid');
   const [saving, setSaving] = useState(false);
+  const [confirmOffline, setConfirmOffline] = useState(false);
+  const [events, setEvents] = useState<OrderEvent[] | null>(null);
 
   const flash = (m: string) => setMsg(m);
 
@@ -119,6 +162,7 @@ export default function PedidosAdmin() {
     if (estadoFilter) params.set('estado', estadoFilter);
     if (from)         params.set('from', from);
     if (to)           params.set('to', to);
+    if (search.trim()) params.set('q', search.trim());
     const r = await fetch(`/api/admin/orders?${params}`);
     if (r.ok) {
       const json = await r.json();
@@ -127,13 +171,50 @@ export default function PedidosAdmin() {
       setPage(p);
     }
     setLoading(false);
-  }, [estadoFilter, from, to]);
+  }, [estadoFilter, from, to, search]);
 
   useEffect(() => { load(1); }, [load]);
 
   const openDetail = (o: AdminOrder) => {
     setSelected(o);
     setNewEstado(o.estado);
+    setConfirmOffline(false);
+    setEvents(null);
+  };
+
+  // Fetch the private evidence trail whenever the detail modal opens.
+  useEffect(() => {
+    if (!selected) return;
+    let cancelled = false;
+    fetch(`/api/admin/orders/${selected.id}/events`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (!cancelled && json?.data) setEvents(json.data as OrderEvent[]);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [selected]);
+
+  const runReconcile = async () => {
+    setReconciling(true);
+    try {
+      const r = await fetch('/api/admin/orders/reconcile', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      const json = await r.json();
+      if (r.ok) {
+        const paid = (json.results ?? []).filter((x: { result: string }) => x.result === 'paid').length;
+        flash(`🔄 Conciliación: ${json.checked ?? 0} pedidos revisados, ${paid} pasaron a pagados`);
+        load(page);
+      } else {
+        flash(`❌ ${json.error ?? 'Error al conciliar'}`);
+      }
+    } catch {
+      flash('❌ Error al conciliar');
+    } finally {
+      setReconciling(false);
+    }
   };
 
   const handleUpdateEstado = async () => {
@@ -142,16 +223,20 @@ export default function PedidosAdmin() {
     const r = await fetch('/api/admin/orders', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-      body: JSON.stringify({ id: selected.id, estado: newEstado }),
+      body: JSON.stringify({
+        id: selected.id,
+        estado: newEstado,
+        confirmOfflinePayment: confirmOffline || undefined,
+      }),
     });
+    const json = await r.json().catch(() => ({}));
     setSaving(false);
     if (r.ok) {
       flash('✅ Estado actualizado');
       setSelected(null);
       load(page);
     } else {
-      const e = await r.json();
-      flash(`❌ ${e.error}`);
+      flash(`❌ ${json.error ?? 'Error al actualizar'}`);
     }
   };
 
@@ -187,6 +272,18 @@ export default function PedidosAdmin() {
         <span style={{ color: 'var(--gray)', alignSelf: 'center' }}>→</span>
         <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={styles.dateInput} />
         <button className="btn btn-outline" onClick={() => load(1)}>Filtrar</button>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && load(1)}
+          placeholder="Buscar por email, ID pedido o ID pago MP"
+          className={styles.dateInput}
+          style={{ minWidth: 260 }}
+        />
+        <button className="btn btn-primary" onClick={runReconcile} disabled={reconciling} title="Verifica pedidos pendientes contra la API de Mercado Pago">
+          {reconciling ? 'Conciliando…' : '🔄 Conciliar pagos'}
+        </button>
       </div>
 
       {loading ? (
@@ -221,7 +318,12 @@ export default function PedidosAdmin() {
                         <div style={{ fontSize: '0.75rem', color: 'var(--gray)' }}>{o.guest_email}</div>
                       )}
                     </td>
-                    <td><PaymentBadge canal={o.canal} formaPago={o.forma_pago} /></td>
+                    <td>
+                      <PaymentBadge canal={o.canal} formaPago={o.forma_pago} />
+                      <div style={{ marginTop: '0.25rem' }}>
+                        <PaymentStatusPill order={o} />
+                      </div>
+                    </td>
                     <td><DeliveryBadge tipo={o.tipo_entrega} zona={o.zona} /></td>
                     <td style={{ fontWeight: 600 }}>{fmt(o.total)}</td>
                     <td>
@@ -300,7 +402,12 @@ export default function PedidosAdmin() {
                 </div>
                 <div className={styles.infoRow}>
                   <span className={styles.infoLabel}>Email</span>
-                  <span className={styles.infoValue}>{selected.guest_email ?? '—'}</span>
+                  <span className={styles.infoValue}>
+                    {selected.guest_email ?? '—'}
+                    {selected.contact_verified === true && (
+                      <span style={{ color: 'var(--green-dark)', fontSize: '0.78rem', marginLeft: '0.4rem' }}>✓ verificado</span>
+                    )}
+                  </span>
                 </div>
                 <div className={styles.infoRow}>
                   <span className={styles.infoLabel}>Teléfono</span>
@@ -324,11 +431,31 @@ export default function PedidosAdmin() {
                     <span className={styles.infoValue}>{selected.guest_direccion}</span>
                   </div>
                 )}
+                <div className={styles.infoRow}>
+                  <span className={styles.infoLabel}>Estado del pago</span>
+                  <span className={styles.infoValue}>
+                    <PaymentStatusPill order={selected} />
+                  </span>
+                </div>
+                {selected.payment_received != null && (
+                  <div className={styles.infoRow}>
+                    <span className={styles.infoLabel}>Monto recibido (MP)</span>
+                    <span className={styles.infoValue}>{fmt(Number(selected.payment_received))}</span>
+                  </div>
+                )}
                 {selected.mp_payment_id && (
                   <div className={styles.infoRow}>
                     <span className={styles.infoLabel}>ID Pago MP</span>
                     <span className={styles.infoValue} style={{ fontSize: '0.78rem', wordBreak: 'break-all' }}>
                       {selected.mp_payment_id}
+                    </span>
+                  </div>
+                )}
+                {selected.mp_preference_id && (
+                  <div className={styles.infoRow}>
+                    <span className={styles.infoLabel}>ID Preferencia MP</span>
+                    <span className={styles.infoValue} style={{ fontSize: '0.78rem', wordBreak: 'break-all' }}>
+                      {selected.mp_preference_id}
                     </span>
                   </div>
                 )}
@@ -367,10 +494,51 @@ export default function PedidosAdmin() {
                   Total: {fmt(selected.total)}
                 </div>
               </div>
+              {/* Evidence trail (order_events) */}
+              <div>
+                <p className={styles.infoLabel} style={{ marginBottom: '0.5rem' }}>Historial técnico del pedido</p>
+                {events === null ? (
+                  <p style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>Cargando eventos…</p>
+                ) : events.length === 0 ? (
+                  <p style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>
+                    Sin eventos registrados (pedidos anteriores a la migración).
+                  </p>
+                ) : (
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: 260, overflowY: 'auto', border: '1px solid var(--gray-light)', borderRadius: 'var(--radius-sm)' }}>
+                    {events.map((ev) => (
+                      <li key={ev.id} style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--gray-light)', fontSize: '0.78rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
+                          <strong>{ev.event}</strong>
+                          <span style={{ color: 'var(--gray)', whiteSpace: 'nowrap' }}>
+                            {new Date(ev.created_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <div style={{ color: 'var(--gray)' }}>
+                          {ev.source ? `origen: ${ev.source}` : ''}
+                          {ev.ip ? ` · IP: ${ev.ip}` : ''}
+                        </div>
+                        {ev.detail && Object.keys(ev.detail).length > 0 && (
+                          <div style={{ color: 'var(--gray)', wordBreak: 'break-all' }}>
+                            {JSON.stringify(ev.detail)}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
 
             <div className={styles.modalFooter}>
-              <label style={{ fontSize: '0.875rem', color: 'var(--gray)', marginRight: '0.25rem' }}>
+              <label style={{ fontSize: '0.85rem', color: 'var(--gray)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <input
+                  type="checkbox"
+                  checked={confirmOffline}
+                  onChange={(e) => setConfirmOffline(e.target.checked)}
+                />
+                Confirmar pago manual (cobrado fuera de la web)
+              </label>
+              <label style={{ fontSize: '0.875rem', color: 'var(--gray)', marginLeft: '0.25rem' }}>
                 Cambiar estado:
               </label>
               <select

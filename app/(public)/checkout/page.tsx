@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
 import { getSafeInitPoint } from '@/lib/security/url';
+import { TurnstileWidget } from '@/components/ui/TurnstileWidget';
 
 import type { GuestCheckoutData } from '@/types';
 import { DeliveryTypeSelector } from './DeliveryTypeSelector';
@@ -87,6 +88,30 @@ export default function CheckoutPage() {
   const [zona, setZona] = useState('');
   const [direccion, setDireccion] = useState('');
   const [metodoPago, setMetodoPago] = useState<'mp' | 'efectivo' | ''>('');
+
+  // ── Verificación de email (compra sin cuenta) ──
+  const [guestVerification, setGuestVerification] = useState<{ token: string; email: string } | null>(null);
+  const [verificationOpen, setVerificationOpen] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+  const [verifyCode, setVerifyCode] = useState('');
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileKey, setTurnstileKey] = useState(0);
+  const pendingGuestDataRef = useRef<GuestCheckoutData | null>(null);
+  const verifyPanelRef = useRef<HTMLDivElement | null>(null);
+
+  const onTurnstileVerify = useCallback((token: string) => {
+    setTurnstileToken(token);
+  }, []);
+
+  // Cuando aparece el panel de verificación, llevarlo a la vista del usuario.
+  useEffect(() => {
+    if (verificationOpen) {
+      verifyPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [verificationOpen, codeSent]);
 
   // Promo code
   const [promoInput, setPromoInput] = useState('');
@@ -197,12 +222,99 @@ export default function CheckoutPage() {
       direccion: tipoEntrega === 'envio' ? direccion : undefined,
     };
 
+    // Verificación de email: requisito para completar la compra sin cuenta.
+    const emailVerified = !!guestVerification && guestVerification.email === guestData.email.toLowerCase().trim();
+    if (!emailVerified) {
+      pendingGuestDataRef.current = guestData;
+      setVerificationEmail(guestData.email);
+      setVerificationOpen(true);
+      setCodeSent(false);
+      setVerifyCode('');
+      setVerifyError('');
+      return;
+    }
+
     if (metodoPago === 'efectivo') {
       await proceedCashOrder(guestData);
     } else {
       await proceedToPayment(guestData);
     }
   };
+
+  const requestVerificationCode = async (emailToVerify?: string) => {
+    const email = (emailToVerify ?? verificationEmail).toLowerCase().trim();
+    if (!email) {
+      setVerifyError('Ingresá tu email primero');
+      return;
+    }
+    if (!turnstileToken) {
+      setVerifyError('Completá la verificación de seguridad');
+      return;
+    }
+    setVerifyLoading(true);
+    setVerifyError('');
+    try {
+      const res = await fetch('/api/payments/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ email, turnstileToken }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setVerifyError(data.error ?? 'Error al enviar el código');
+        return;
+      }
+      setCodeSent(true);
+    } catch {
+      setVerifyError('Error al enviar el código');
+    } finally {
+      setVerifyLoading(false);
+      setTurnstileToken('');
+      setTurnstileKey((k) => k + 1);
+    }
+  };
+
+  const confirmVerificationCode = async () => {
+    if (!verifyCode.trim()) {
+      setVerifyError('Ingresá el código de 6 dígitos');
+      return;
+    }
+    setVerifyLoading(true);
+    setVerifyError('');
+    try {
+      const email = verificationEmail.toLowerCase().trim();
+      const res = await fetch('/api/payments/verify-email/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ email, code: verifyCode.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setVerifyError(data.error ?? 'Código incorrecto');
+        return;
+      }
+      setGuestVerification({ token: data.token, email });
+      setVerificationOpen(false);
+      setVerifyCode('');
+      // Verificación completa: continuamos automáticamente con la compra pendiente.
+      const guestData = pendingGuestDataRef.current;
+      pendingGuestDataRef.current = null;
+      if (guestData) {
+        if (metodoPago === 'efectivo') await proceedCashOrder(guestData);
+        else await proceedToPayment(guestData);
+      }
+    } catch {
+      setVerifyError('Error al verificar el código');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  // Token válido solo si sigue ligado al email del pedido actual.
+  const contactTokenFor = (emailFor: string | undefined) =>
+    guestVerification && emailFor && guestVerification.email === emailFor.toLowerCase().trim()
+      ? guestVerification.token
+      : undefined;
 
   const proceedToPayment = async (guestData?: GuestCheckoutData, delivery?: { tipoEntrega: 'retiro' | 'envio'; zona?: string; direccion?: string }) => {
     setLoading(true);
@@ -211,11 +323,21 @@ export default function CheckoutPage() {
       const res = await fetch('/api/payments/create-preference', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        body: JSON.stringify({ items, total, guest: guestData, delivery, promoCode: promoApplied?.code }),
+        body: JSON.stringify({ items, total, guest: guestData, delivery, promoCode: promoApplied?.code, contactToken: contactTokenFor(guestData?.email) }),
       });
 
       if (!res.ok) {
         const data = await res.json();
+        if (data.needsEmailVerification) {
+          pendingGuestDataRef.current = guestData ?? null;
+          setVerificationEmail((guestData?.email ?? email).toLowerCase().trim());
+          setVerificationOpen(true);
+          setCodeSent(false);
+          setVerifyCode('');
+          setVerifyError('');
+          setLoading(false);
+          return;
+        }
         throw new Error(data.error ?? 'Error al procesar el pago');
       }
 
@@ -241,10 +363,20 @@ export default function CheckoutPage() {
       const res = await fetch('/api/payments/cash-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        body: JSON.stringify({ items, total, guest: guestData, delivery, promoCode: promoApplied?.code }),
+        body: JSON.stringify({ items, total, guest: guestData, delivery, promoCode: promoApplied?.code, contactToken: contactTokenFor(guestData?.email) }),
       });
       if (!res.ok) {
         const data = await res.json();
+        if (data.needsEmailVerification) {
+          pendingGuestDataRef.current = guestData ?? null;
+          setVerificationEmail((guestData?.email ?? email).toLowerCase().trim());
+          setVerificationOpen(true);
+          setCodeSent(false);
+          setVerifyCode('');
+          setVerifyError('');
+          setLoading(false);
+          return;
+        }
         throw new Error(data.error ?? 'Error al crear el pedido');
       }
       const { orderId } = await res.json();
@@ -405,7 +537,83 @@ export default function CheckoutPage() {
                         required
                         autoComplete="email"
                       />
+                      {guestVerification?.email === email.toLowerCase().trim() && (
+                        <p style={{ fontSize: '0.78rem', color: 'var(--green-dark)', marginTop: '0.3rem' }}>
+                          ✓ Email verificado
+                        </p>
+                      )}
                     </div>
+
+                    {/* ── Verificación de email (paso previo al pago) ── */}
+                    {verificationOpen && (
+                      <div ref={verifyPanelRef} style={{ background: '#fffbeb', border: '1.5px solid #f59e0b55', borderRadius: 'var(--radius-sm)', padding: '1rem 1.15rem', margin: '0.5rem 0 1.25rem' }}>
+                        <h3 className={styles.formTitle} style={{ marginBottom: '0.5rem', fontSize: '1rem' }}>
+                          🔐 Confirmá tu email
+                        </h3>
+                        <p style={{ fontSize: '0.82rem', color: '#78350f', margin: '0 0 0.75rem' }}>
+                          Para evitar pedidos falsos, verificamos que el email <strong>{verificationEmail}</strong> sea tuyo.
+                          Te enviamos un código de 6 dígitos (vence en 15 minutos).
+                        </p>
+
+                        {!codeSent ? (
+                          <>
+                            <TurnstileWidget key={turnstileKey} onVerify={onTurnstileVerify} />
+                            <button
+                              type="button"
+                              className="btn btn-primary w-full"
+                              style={{ marginTop: '0.5rem', padding: '0.7rem' }}
+                              disabled={verifyLoading || !turnstileToken}
+                              onClick={() => requestVerificationCode(verificationEmail)}
+                            >
+                              {verifyLoading ? 'Enviando...' : 'Enviar código'}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <div className="form-group">
+                              <label htmlFor="verify-code">Código de verificación</label>
+                              <input
+                                id="verify-code"
+                                type="text"
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
+                                maxLength={6}
+                                value={verifyCode}
+                                onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ''))}
+                                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), confirmVerificationCode())}
+                                placeholder="000000"
+                                style={{ letterSpacing: '0.4em', textAlign: 'center', fontWeight: 700 }}
+                                required
+                              />
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              <button
+                                type="button"
+                                className="btn btn-primary w-full"
+                                style={{ padding: '0.7rem' }}
+                                disabled={verifyLoading || verifyCode.length !== 6}
+                                onClick={confirmVerificationCode}
+                              >
+                                {verifyLoading ? 'Verificando...' : 'Confirmar email'}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-outline"
+                                style={{ padding: '0.7rem', whiteSpace: 'nowrap' }}
+                                disabled={verifyLoading}
+                                onClick={() => { setCodeSent(false); setVerifyCode(''); }}
+                              >
+                                Reenviar
+                              </button>
+                            </div>
+                          </>
+                        )}
+
+                        {verifyError && (
+                          <p style={{ fontSize: '0.8rem', color: 'var(--error)', margin: '0.6rem 0 0' }}>{verifyError}</p>
+                        )}
+                      </div>
+                    )}
 
                     {/* ── Entrega ── */}
                     <h3 className={styles.formTitle} style={{ marginTop: '1.5rem' }}>Entrega</h3>
