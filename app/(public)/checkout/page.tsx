@@ -541,7 +541,23 @@ export default function CheckoutPage() {
                         id="email"
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          // Si el panel de verificación está abierto y el mail
+                          // cambia, el código solicitado quedó atado al mail
+                          // anterior: actualizar el panel y reiniciar el paso.
+                          if (verificationOpen) {
+                            setVerificationEmail(e.target.value);
+                            setCodeSent(false);
+                            setVerifyCode('');
+                            if (pendingGuestDataRef.current) {
+                              pendingGuestDataRef.current = {
+                                ...pendingGuestDataRef.current,
+                                email: e.target.value,
+                              };
+                            }
+                          }
+                        }}
                         placeholder="juan@email.com"
                         required
                         autoComplete="email"
