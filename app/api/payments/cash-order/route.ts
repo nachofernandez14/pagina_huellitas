@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createOrder } from '@/lib/orders';
 import { sendOrderConfirmationEmail, sendNewOrderNotificationToAdmin } from '@/lib/email';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { recordOrderEvent, getRequestContext } from '@/lib/evidence';
+import { verifyCheckoutToken } from '@/lib/checkout-verification';
 import type { CartItem, GuestCheckoutData } from '@/types';
 
 export async function POST(req: NextRequest) {
@@ -25,9 +27,10 @@ export async function POST(req: NextRequest) {
     guest?: GuestCheckoutData;
     delivery?: { tipoEntrega: 'retiro' | 'envio'; zona?: string; direccion?: string };
     promoCode?: string;
+    contactToken?: string;
   };
 
-  const { items, total, guest, delivery, promoCode } = body;
+  const { items, total, guest, delivery, promoCode, contactToken } = body;
 
   if (!items?.length || !total) {
     return NextResponse.json({ error: 'Datos de pedido inválidos' }, { status: 400 });
@@ -36,6 +39,23 @@ export async function POST(req: NextRequest) {
   // Check if user is logged in
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  if (user && !user.email_confirmed_at) {
+    return NextResponse.json(
+      { error: 'Tenés que confirmar tu email para completar la compra. Revisá tu casilla o reenvialo desde tu perfil.' },
+      { status: 403 }
+    );
+  }
+
+  if (!user && guest) {
+    // Guest email must be verified with a one-time code (same rule as MP checkout)
+    if (!contactToken || !verifyCheckoutToken(contactToken, guest.email)) {
+      return NextResponse.json(
+        { error: 'Necesitamos confirmar tu email antes de completar la compra.', needsEmailVerification: true },
+        { status: 403 }
+      );
+    }
+  }
 
   let profileSnapshot: { nombre?: string | null; email?: string | null; telefono?: string | null } | undefined;
   if (user) {
@@ -104,6 +124,13 @@ export async function POST(req: NextRequest) {
       formaPago: 'efectivo',
       promoCode: validatedPromoCode,
       promoDescuento: promoDiscount > 0 ? promoDiscount : undefined,
+      contactVerified: true,
+    });
+
+    await recordOrderEvent(order.id, 'cash_order_created', {
+      source: 'client',
+      ctx: getRequestContext(req),
+      detail: { total: finalTotal, items: verifiedItems.length },
     });
 
     // Mark promo code as used immediately (cash — no async payment confirmation)

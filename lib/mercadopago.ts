@@ -91,13 +91,18 @@ export async function createMercadoPagoPreference(
   return { id: result.id, init_point: initPoint };
 }
 
-/** Verifica un pago con la API de MP y retorna datos relevantes o null si no es válido */
-export async function verifyMPPayment(paymentId: string): Promise<{
+export interface MPPaymentInfo {
   status: string;
   orderId: string;
   paymentType: string;
   paymentMethodId: string;
-} | null> {
+  /** Amount actually charged, straight from MP's own record. */
+  amount: number | null;
+  currency: string | null;
+}
+
+/** Verifica un pago con la API de MP y retorna datos relevantes o null si no es válido */
+export async function verifyMPPayment(paymentId: string): Promise<MPPaymentInfo | null> {
   try {
     const token = await getMPAccessToken();
     const res = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
@@ -111,8 +116,43 @@ export async function verifyMPPayment(paymentId: string): Promise<{
       orderId: p.external_reference ?? '',
       paymentType: p.payment_type_id ?? '',
       paymentMethodId: p.payment_method_id ?? '',
+      amount: typeof p.transaction_amount === 'number' ? p.transaction_amount : null,
+      currency: p.currency_id ?? null,
     };
   } catch {
     return null;
+  }
+}
+
+/**
+ * Search MP payments by our order id (external_reference).
+ * Used by the admin reconciliation endpoint to find payments MP approved
+ * while our webhook/return-flow missed the notification.
+ */
+export async function searchPaymentsByExternalReference(
+  orderId: string
+): Promise<{ id: string; status: string; amount: number | null }[]> {
+  try {
+    const token = await getMPAccessToken();
+    const res = await fetch(
+      `https://api.mercadopago.com/v1/payments/search?external_reference=${encodeURIComponent(orderId)}&sort=date_created&criteria=desc`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      }
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    const results: unknown[] = Array.isArray(json?.results) ? json.results : [];
+    return results.map((p) => {
+      const payment = p as Record<string, unknown>;
+      return {
+        id: String(payment.id ?? ''),
+        status: String(payment.status ?? ''),
+        amount: typeof payment.transaction_amount === 'number' ? payment.transaction_amount : null,
+      };
+    });
+  } catch {
+    return [];
   }
 }

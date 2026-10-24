@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createOrder, cancelPendingOrdersByEmail } from '@/lib/orders';
 import { createMercadoPagoPreference } from '@/lib/mercadopago';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { recordOrderEvent, getRequestContext } from '@/lib/evidence';
+import { verifyCheckoutToken } from '@/lib/checkout-verification';
 import type { CartItem, GuestCheckoutData } from '@/types';
 
 function generateCancelToken(orderId: string, preferenceId: string): string {
@@ -34,12 +36,14 @@ export async function POST(req: NextRequest) {
     guest,
     delivery,
     promoCode,
+    contactToken,
   }: {
     items: CartItem[];
     total: number;
     guest?: GuestCheckoutData;
     delivery?: { tipoEntrega: 'retiro' | 'envio'; zona?: string; direccion?: string };
     promoCode?: string;
+    contactToken?: string;
   } = body;
 
   // Validate input
@@ -58,6 +62,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: 'Datos de contacto requeridos para compra como invitado' },
       { status: 400 }
+    );
+  }
+
+  // Logged-in users must have a confirmed email before ordering online.
+  if (user && !user.email_confirmed_at) {
+    return NextResponse.json(
+      { error: 'Tenés que confirmar tu email para completar la compra. Revisá tu casilla o reenvialo desde tu perfil.' },
+      { status: 403 }
     );
   }
 
@@ -83,7 +95,18 @@ export async function POST(req: NextRequest) {
     if (!emailRx.test(guest.email)) {
       return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
     }
+    // Guest email must be verified: a signed token issued by the email-code
+    // flow and bound to this exact email is required.
+    if (!contactToken || !verifyCheckoutToken(contactToken, guest.email)) {
+      return NextResponse.json(
+        { error: 'Necesitamos confirmar tu email antes de completar la compra.', needsEmailVerification: true },
+        { status: 403 }
+      );
+    }
   }
+
+  const ctx = getRequestContext(req);
+  let createdOrderId: string | undefined;
 
   try {
     // ── Verify prices server-side against the database ──────────────────────
@@ -166,7 +189,9 @@ export async function POST(req: NextRequest) {
       profile,
       promoCode: validatedPromoCode,
       promoDescuento: promoDiscount > 0 ? promoDiscount : undefined,
+      contactVerified: true,
     });
+    createdOrderId = order.id;
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
@@ -182,12 +207,24 @@ export async function POST(req: NextRequest) {
     const { updateOrderPayment } = await import('@/lib/orders');
     await updateOrderPayment(order.id, mpId);
 
+    await recordOrderEvent(order.id, 'preference_created', {
+      source: 'client',
+      ctx,
+      detail: { preferenceId: mpId, emailVerified: true },
+    });
+
     const cancelToken = generateCancelToken(order.id, mpId);
     return NextResponse.json({ init_point, orderId: order.id, preferenceId: mpId, cancelToken });
   } catch (err: unknown) {
     const mpErr = err as { message?: string; code?: string; status?: number };
     console.error('[create-preference] MP error:', JSON.stringify(mpErr, null, 2));
-    const msg = mpErr?.message ?? 'Error al crear el pago. Intentá nuevamente.';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    if (createdOrderId) {
+      await recordOrderEvent(createdOrderId, 'preference_error', {
+        source: 'system',
+        ctx,
+        detail: { message: mpErr?.message ?? 'unknown', code: mpErr?.code ?? null },
+      });
+    }
+    return NextResponse.json({ error: mpErr?.message ?? 'Error al crear el pago. Intentá nuevamente.' }, { status: 500 });
   }
 }

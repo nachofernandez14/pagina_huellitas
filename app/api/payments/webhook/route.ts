@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac, timingSafeEqual } from 'crypto';
-import { markOrderPaid, cancelOrder } from '@/lib/orders';
+import { markOrderPaid, recordPaymentStatus } from '@/lib/orders';
 import { verifyMPPayment } from '@/lib/mercadopago';
+import { recordOrderEvent } from '@/lib/evidence';
 
 const isDev = process.env.NODE_ENV === 'development';
 const skipSignatureVerification = isDev && process.env.MP_IGNORE_SIGNATURE === 'true';
 const allowTestWebhooks = isDev && process.env.MP_IGNORE_PAYMENT_VERIFICATION === 'true';
+
+/** MP payment statuses mirrored into orders.payment_status (DB check constraint). */
+const PAYMENT_STATUSES = new Set([
+  'pending', 'in_process', 'approved', 'rejected', 'cancelled', 'refunded', 'charged_back', 'cash_pending',
+]);
+const MP_STATUS_MAP: Record<string, string> = { authorized: 'in_process' };
 
 /**
  * Verifica la firma del webhook de Mercado Pago
@@ -153,13 +160,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { status, orderId, paymentType, paymentMethodId } = paymentData;
+    const { status, orderId, paymentType, paymentMethodId, amount, currency } = paymentData;
     console.log('[webhook] Datos del pago obtenidos', {
       paymentId,
       status,
       orderId,
       paymentType,
       paymentMethodId,
+    });
+
+    // Evidence trail: record every payment notification tied to the order.
+    await recordOrderEvent(orderId, 'payment_notification', {
+      source: 'webhook',
+      detail: { paymentId, status, paymentType, paymentMethodId, amount },
     });
 
     // 6. Si el pago está aprobado, actualizar la orden
@@ -172,11 +185,18 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      await markOrderPaid(orderId, paymentId, paymentType ?? undefined);
-      console.log('[webhook] ✓ Orden marcada como PAGADA', {
+      const result = await markOrderPaid(orderId, paymentId, paymentType ?? undefined, { amount, currency });
+
+      if (result.duplicate) {
+        console.log('[webhook] Notificación duplicada ignorada', { orderId, paymentId });
+        return NextResponse.json({ received: true, status: 'duplicate', orderId, paymentId });
+      }
+
+      console.log('[webhook] ✓ Orden procesada', {
         orderId,
         paymentId,
         paymentType,
+        applied: result.applied,
       });
 
       return NextResponse.json({
@@ -184,26 +204,27 @@ export async function POST(req: NextRequest) {
         status: 'processed',
         orderId,
         paymentId,
+        amountMismatch: !result.applied,
       });
     }
 
-    // 7. Estados de rechazo/cancelación — cancelar la orden
-    if (['rejected', 'cancelled'].includes(status)) {
-      if (orderId) {
-        await cancelOrder(orderId);
-        console.log('[webhook] ✓ Orden cancelada por pago', { status, orderId, paymentId });
-      } else {
-        console.log('[webhook] Pago rechazado/cancelado sin external_reference', { status, paymentId });
+    // 7. Resto de estados — se registran en la orden sin sobrescribir un pago
+    //    ya verificado. Rechazado/cancelado cancela el pedido pendiente.
+    const normalized = MP_STATUS_MAP[status] ?? status;
+    if (PAYMENT_STATUSES.has(normalized)) {
+      await recordPaymentStatus(orderId, paymentId, normalized, { paymentType });
+      if (['rejected', 'cancelled', 'refunded', 'charged_back'].includes(normalized)) {
+        console.log('[webhook] ✓ Orden cancelada por estado de pago', { status: normalized, orderId, paymentId });
+        return NextResponse.json({ received: true, status: 'cancelled', paymentStatus: normalized, orderId: orderId || null });
       }
-      return NextResponse.json({
-        received: true,
-        status: 'cancelled',
-        paymentStatus: status,
-        orderId: orderId || null,
+    } else {
+      // Unknown MP status — keep the evidence, don't touch the order state.
+      await recordOrderEvent(orderId, `payment_status_unmapped_${status || 'empty'}`, {
+        source: 'webhook',
+        detail: { paymentId },
       });
     }
 
-    // 8. Otros estados (pending, in_process, refunded, charged_back, etc.)
     console.log('[webhook] Pago en estado:', status, 'No se toma acción automática');
     return NextResponse.json({
       received: true,

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { markOrderPaid, cancelOrder } from '@/lib/orders';
 import { verifyMPPayment } from '@/lib/mercadopago';
+import { recordOrderEvent } from '@/lib/evidence';
 import { createClient } from '@/lib/supabase/server';
 import CartClearer from './CartClearer';
 
@@ -50,9 +51,17 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
         if (attempt < 2) await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
       }
     }
+    if (info) {
+      await recordOrderEvent(orderId, 'return_flow_verification', {
+        source: 'client',
+        detail: { paymentId, mpStatus: info.status },
+      });
+    }
     if (info && info.status === 'approved' && info.orderId === orderId) {
       metodoPago = METODO_LABELS[info.paymentType] ?? info.paymentType ?? null;
-      await markOrderPaid(orderId, paymentId, metodoPago ?? undefined);
+      // markOrderPaid is idempotent and amount-verified — a webhook that already
+      // processed this payment results in a no-op here.
+      await markOrderPaid(orderId, paymentId, metodoPago ?? undefined, { amount: info.amount, currency: info.currency });
       paymentConfirmed = true;
     } else if (info && info.status !== 'approved') {
       if (orderId) {
