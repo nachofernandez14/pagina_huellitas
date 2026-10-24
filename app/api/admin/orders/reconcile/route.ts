@@ -42,7 +42,7 @@ export async function POST() {
 
     if (approved) {
       try {
-        const res = await markOrderPaid(order.id, approved.id, undefined, { amount: approved.amount });
+        const res = await markOrderPaid(order.id, approved.id, 'Mercado Pago', { amount: approved.amount });
         results.push({ orderId: order.id, result: res.applied ? 'paid' : res.duplicate ? 'already-paid' : 'amount-mismatch' });
       } catch (err) {
         results.push({ orderId: order.id, result: 'error' });

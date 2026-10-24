@@ -104,7 +104,7 @@ export interface MarkPaidResult {
 export async function markOrderPaid(
   orderId: string,
   mpPaymentId: string,
-  formaPago?: string,
+  paymentLabel?: string,
   payment?: { amount?: number | null; currency?: string | null }
 ): Promise<MarkPaidResult> {
   const supabase = createAdminClient();
@@ -138,7 +138,10 @@ export async function markOrderPaid(
     mp_payment_id: mpPaymentId,
     ...(payment?.amount != null ? { payment_received: payment.amount } : {}),
   };
-  if (formaPago) update.forma_pago = formaPago;
+  // `forma_pago` is a constrained business field (e.g. efectivo / mp), not
+  // Mercado Pago's payment_type_id (`account_money`, `credit_card`, etc.).
+  // Writing the MP enum there violates orders_forma_pago_check and used to
+  // prevent payment_status + mp_payment_id from being saved at all.
   if (!amountMismatch) update.estado = 'paid';
 
   // Race-safe transition: this guarded update can only ever succeed once,
@@ -166,7 +169,7 @@ export async function markOrderPaid(
       source: 'webhook',
       detail: { mpPaymentId, amount: payment?.amount ?? null, currency: payment?.currency ?? null },
     });
-    notifyPaid(order as Order, mpPaymentId, formaPago);
+    notifyPaid(order as Order, mpPaymentId, paymentLabel);
     return { applied: true, duplicate: false };
   }
 
@@ -224,7 +227,7 @@ export async function markOrderPaid(
   });
 
   if (!amountMismatch) {
-    notifyPaid(forced as Order, mpPaymentId, formaPago);
+    notifyPaid(forced as Order, mpPaymentId, paymentLabel);
     return { applied: true, duplicate: false };
   }
   return { applied: false, duplicate: false };

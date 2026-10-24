@@ -185,7 +185,10 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const result = await markOrderPaid(orderId, paymentId, paymentType ?? undefined, { amount, currency });
+      // Never store MP's payment_type_id (e.g. `account_money`) in the
+      // constrained orders.forma_pago column. That detail is already retained
+      // in the payment notification event.
+      const result = await markOrderPaid(orderId, paymentId, 'Mercado Pago', { amount, currency });
 
       if (result.duplicate) {
         console.log('[webhook] Notificación duplicada ignorada', { orderId, paymentId });
