@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
 import { getSafeInitPoint } from '@/lib/security/url';
 import { TurnstileWidget } from '@/components/ui/TurnstileWidget';
+import { validateMendozaPhone, PHONE_ERROR_MESSAGE } from '@/lib/validation/phone';
 
 import type { GuestCheckoutData } from '@/types';
 import { DeliveryTypeSelector } from './DeliveryTypeSelector';
@@ -53,10 +54,11 @@ export default function CheckoutPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({ orderId, preferenceId, cancelToken }),
-      }).catch(() => {});
-      setError('El pago no fue completado. Podés intentarlo nuevamente.');
+      })
+        .catch(() => {})
+        .then(() => setError('El pago no fue completado. Podés intentarlo nuevamente.'));
     } catch { /* ignore parse errors */ }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  });
 
   // Also handle bfcache restoration (browser Back restoring the frozen page)
   useEffect(() => {
@@ -194,6 +196,10 @@ export default function CheckoutPage() {
     setError('');
     if (!nombre || !email || !telefono) {
       setError('Completa todos los campos de contacto');
+      return;
+    }
+    if (!validateMendozaPhone(telefono).valid) {
+      setError(PHONE_ERROR_MESSAGE);
       return;
     }
     if (!tipoEntrega) {
@@ -520,10 +526,13 @@ export default function CheckoutPage() {
                         type="tel"
                         value={telefono}
                         onChange={(e) => setTelefono(e.target.value)}
-                        placeholder="+54 9 261 000-0000"
+                        placeholder="261 495-3456"
                         required
                         autoComplete="tel"
                       />
+                      <p style={{ fontSize: '0.75rem', color: 'var(--gray)', marginTop: '0.3rem' }}>
+                        Número de Mendoza sin 0 ni 15
+                      </p>
                     </div>
 
                     <div className="form-group">
