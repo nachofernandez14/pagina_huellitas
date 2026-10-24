@@ -39,6 +39,7 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
 
   let metodoPago: string | null = null;
   let paymentConfirmed = false;
+  let paymentReviewMessage: string | null = null;
 
   // Verificar el pago con MP y marcar como pagado (fallback al webhook)
   if (paymentId && orderId && !isPending && !isCash) {
@@ -51,25 +52,43 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
         if (attempt < 2) await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
       }
     }
-    if (info) {
-      await recordOrderEvent(orderId, 'return_flow_verification', {
-        source: 'client',
-        detail: { paymentId, mpStatus: info.status },
-      });
-    }
-    if (info && info.status === 'approved' && info.orderId === orderId) {
+    if (!info) {
+      paymentReviewMessage = 'Mercado Pago recibió tu respuesta, pero todavía no pudimos verificarla. No vuelvas a pagar; vamos a revisar el estado de tu pedido.';
+    } else if (info.status === 'approved' && info.orderId === orderId) {
       metodoPago = METODO_LABELS[info.paymentType] ?? info.paymentType ?? null;
-      // markOrderPaid is idempotent and amount-verified — a webhook that already
-      // processed this payment results in a no-op here.
-      await markOrderPaid(orderId, paymentId, metodoPago ?? undefined, { amount: info.amount, currency: info.currency });
-      paymentConfirmed = true;
+      try {
+        await recordOrderEvent(orderId, 'return_flow_verification', {
+          source: 'client',
+          detail: { paymentId, mpStatus: info.status },
+        });
+        // markOrderPaid is idempotent and amount-verified — a webhook that already
+        // processed this payment results in a no-op here.
+        const result = await markOrderPaid(orderId, paymentId, metodoPago ?? undefined, { amount: info.amount, currency: info.currency });
+        paymentConfirmed = result.applied || result.duplicate;
+        if (!paymentConfirmed) {
+          paymentReviewMessage = 'Mercado Pago aprobó el pago, pero el importe necesita una revisión. No vuelvas a pagar; contactanos con tu número de pedido.';
+        }
+      } catch (error) {
+        console.error('[checkout/success] verified payment could not be persisted', {
+          orderId,
+          paymentId,
+          error: error instanceof Error ? error.message : 'unknown',
+        });
+        paymentReviewMessage = 'Mercado Pago aprobó el pago, pero hubo un problema al registrar el pedido. No vuelvas a pagar; contactanos con tu número de pedido para que lo revisemos.';
+      }
     } else if (info && info.status !== 'approved') {
       if (orderId) {
         try { await cancelOrder(orderId); } catch { /* silent */ }
       }
       redirect(`/checkout/failure?order=${orderId ?? ''}`);
+    } else {
+      paymentReviewMessage = 'No pudimos vincular la respuesta de pago con este pedido. No vuelvas a pagar; contactanos con tu número de pedido.';
     }
+  } else if (!isCash && !isPending) {
+    paymentReviewMessage = 'No recibimos los datos necesarios para verificar el pago. No vuelvas a pagar; contactanos con tu número de pedido.';
   }
+
+  const paymentNeedsReview = !isCash && !paymentConfirmed;
 
   // Verificar si el usuario está logueado para mostrar "Mis pedidos"
   const supabase = await createClient();
@@ -90,7 +109,7 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
-          ) : isPending ? (
+          ) : isPending || paymentNeedsReview ? (
             // Clock icon
             <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10" />
@@ -105,7 +124,7 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
           )}
         </div>
         <h1 className="section-title" style={{ marginBottom: '0.75rem' }}>
-          {isCash ? '¡Pedido confirmado!' : isPending ? 'Pago en revisión' : '¡Gracias por tu compra!'}
+          {isCash ? '¡Pedido confirmado!' : isPending || paymentNeedsReview ? 'Pago en revisión' : '¡Gracias por tu compra!'}
         </h1>
         <p className="text-gray" style={{ marginBottom: '0.5rem' }}>
           {isCash
@@ -114,8 +133,15 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
               : 'Tu pedido fue registrado. Pasá por el local a retirarlo y abonarlo en efectivo.'
             : isPending
             ? 'Tu pago está siendo procesado. Te notificaremos cuando se confirme.'
-            : 'Tu pedido fue recibido y lo estamos preparando.'}
+            : paymentConfirmed
+            ? 'Tu pago fue verificado y tu pedido ya está registrado.'
+            : 'Tu pago necesita una revisión antes de confirmar el pedido.'}
         </p>
+        {paymentReviewMessage && (
+          <p role="alert" style={{ background: '#fffbeb', border: '1px solid #f59e0b88', borderRadius: 8, padding: '0.75rem 1rem', margin: '1rem 0', color: '#78350f' }}>
+            {paymentReviewMessage}
+          </p>
+        )}
         {isCash && (
           <p className="text-gray" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>
             El estado de tu pedido aparece como <strong>pendiente</strong> hasta que se confirme el pago.

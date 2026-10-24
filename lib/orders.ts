@@ -131,7 +131,9 @@ export async function markOrderPaid(
 
   const nowISO = new Date().toISOString();
   const update: Record<string, unknown> = {
-    payment_status: 'approved',
+    // Keep mismatched payments out of the approved state so fulfilment stays
+    // blocked and the reconciliation sweep continues to pick them up.
+    payment_status: amountMismatch ? 'in_process' : 'approved',
     payment_verified_at: nowISO,
     mp_payment_id: mpPaymentId,
     ...(payment?.amount != null ? { payment_received: payment.amount } : {}),
