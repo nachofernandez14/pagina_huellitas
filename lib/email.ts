@@ -154,6 +154,36 @@ export async function sendPasswordResetEmail(to: string, resetLink: string) {
   });
 }
 
+// ─── Email: código de verificación para checkout de invitado ────────────────
+
+export async function sendCheckoutVerificationEmail(to: string, code: string) {
+  const body = `
+    <h1 style="margin:0 0 8px;font-size:22px;color:#1a1a1a;font-weight:700;">🔐 Confirmá tu email</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#444;line-height:1.6;">
+      Usá este código para confirmar tu email y completar tu compra en Huellitas Petshop.
+    </p>
+    <div style="background:#f0fdf4;border:2px dashed #2d6a4f;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
+      <p style="margin:0 0 6px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;">Tu código</p>
+      <p style="margin:0;font-size:32px;font-weight:900;color:#2d6a4f;letter-spacing:6px;">${code}</p>
+    </div>
+    <div style="background:#fffbeb;border-radius:8px;padding:14px 18px;margin-bottom:20px;">
+      <p style="margin:0;font-size:13px;color:#78350f;line-height:1.6;">
+        • El código vence en <strong>15 minutos</strong><br>
+        • Si no fuiste vos, ignorá este email
+      </p>
+    </div>
+    <p style="margin:0;font-size:13px;color:#888;">¿Dudas? Escribinos por WhatsApp y te ayudamos.</p>
+  `;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `🔐 Código de verificación: ${code} — Huellitas Petshop`,
+    html: emailLayout('Confirmá tu email', body),
+    text: `Tu código de verificación es: ${code}\n\nVence en 15 minutos. Si no solicitaste este código, ignorá este email.\n\nHuellitas Petshop`,
+  });
+}
+
 // ─── Email: confirmación de pedido ─────────────────────────────────────────
 
 export async function sendOrderConfirmationEmail(params: {

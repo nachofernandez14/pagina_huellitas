@@ -38,6 +38,16 @@ export interface CartItem {
   promo_label?: string | null;
 }
 
+export type OrderPaymentStatus =
+  | 'pending'
+  | 'in_process'
+  | 'approved'
+  | 'rejected'
+  | 'cancelled'
+  | 'refunded'
+  | 'charged_back'
+  | 'cash_pending';
+
 export interface Order {
   id: string;
   user_id?: string;
@@ -52,6 +62,10 @@ export interface Order {
   productos: CartItem[];
   total: number;
   estado: 'pending' | 'paid' | 'cancelled' | 'failed' | 'preparing' | 'ready' | 'shipped' | 'delivered';
+  payment_status: OrderPaymentStatus;
+  payment_verified_at?: string | null;
+  payment_received?: number | null;
+  contact_verified?: boolean;
   mp_preference_id?: string;
   mp_payment_id?: string;
   created_at: string;
