@@ -313,8 +313,10 @@ export async function sendNewOrderNotificationToAdmin(params: {
   direccion?: string | null;
   formaPago?: string | null;
   metodoPago?: string | null;
+  /** true → pedido creado pero con pago aún no confirmado */
+  pendienteDePago?: boolean;
 }) {
-  const { nombre, email, telefono, orderId, items, total, tipoEntrega, zona, direccion, formaPago, metodoPago } = params;
+  const { nombre, email, telefono, orderId, items, total, tipoEntrega, zona, direccion, formaPago, metodoPago, pendienteDePago } = params;
   const shortId = orderId.slice(0, 8).toUpperCase();
   const safeNombre = nombre ? escapeHtml(nombre) : null;
   const safeEmail = escapeHtml(email);
@@ -336,9 +338,16 @@ export async function sendNewOrderNotificationToAdmin(params: {
     `  • ${i.nombre}${i.kg ? ` (${i.kg})` : ''} x${i.quantity} — ${formatPrice(i.precio * i.quantity)}`
   ).join('\n');
 
+  const titulo = pendienteDePago
+    ? '🛒 Nuevo pedido iniciado (pago pendiente)'
+    : '🛒 ¡Nuevo pedido recibido!';
+  const subtitulo = pendienteDePago
+    ? 'Registraron un pedido y se redirigió a Mercado Pago. Esperando confirmación del pago.'
+    : 'Se realizó un nuevo pedido en la tienda.';
+
   const body = `
-    <h1 style="margin:0 0 6px;font-size:22px;color:#1a1a1a;font-weight:700;">🛒 ¡Nuevo pedido recibido!</h1>
-    <p style="margin:0 0 20px;font-size:15px;color:#555;">Se realizó un nuevo pedido en la tienda.</p>
+    <h1 style="margin:0 0 6px;font-size:22px;color:#1a1a1a;font-weight:700;">${titulo}</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#555;">${subtitulo}</p>
     <div style="background:#f7faf8;border-radius:8px;padding:14px 18px;margin-bottom:20px;">
       <p style="margin:0 0 4px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Pedido</p>
       <p style="margin:0;font-size:18px;font-weight:700;color:#2d6a4f;">#${shortId}</p>
@@ -368,9 +377,13 @@ export async function sendNewOrderNotificationToAdmin(params: {
   await resend.emails.send({
     from: FROM,
     to: ADMIN_EMAIL,
-    subject: `🛒 Nuevo pedido #${shortId} — ${nombre ?? 'Cliente'} · Huellitas Petshop`,
+    subject: pendienteDePago
+      ? `🛒 Pedido #${shortId} iniciado (pendiente de pago) — ${nombre ?? 'Cliente'} · Huellitas Petshop`
+      : `🛒 Nuevo pedido #${shortId} — ${nombre ?? 'Cliente'} · Huellitas Petshop`,
     html: emailLayout('Nuevo pedido', body),
-    text: `NUEVO PEDIDO #${shortId}\n\nCliente: ${nombre ?? 'Sin nombre'}\nEmail: ${email}\nTeléfono: ${telefono ?? '-'}\n\n${entregaStr}\n${pagoStr}\n\nProductos:\n${productoLines}\n\nTotal: ${formatPrice(total)}\n\nAdministrá este pedido desde el panel.`,
+    text: pendienteDePago
+      ? `PEDIDO INICIADO (PENDIENTE DE PAGO) #${shortId}\n\n${subtitulo}\n\nCliente: ${nombre ?? 'Sin nombre'}\nEmail: ${email}\nTeléfono: ${telefono ?? '-'}\n\n${entregaStr}\n${pagoStr}\n\nProductos:\n${productoLines}\n\nTotal: ${formatPrice(total)}\n\nAdministrá este pedido desde el panel.`
+      : `NUEVO PEDIDO #${shortId}\n\nCliente: ${nombre ?? 'Sin nombre'}\nEmail: ${email}\nTeléfono: ${telefono ?? '-'}\n\n${entregaStr}\n${pagoStr}\n\nProductos:\n${productoLines}\n\nTotal: ${formatPrice(total)}\n\nAdministrá este pedido desde el panel.`,
   });
 }
 

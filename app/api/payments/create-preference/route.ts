@@ -3,6 +3,7 @@ import { createHmac } from 'crypto';
 import { createClient } from '@/lib/supabase/server';
 import { createOrder, cancelPendingOrdersByEmail } from '@/lib/orders';
 import { createMercadoPagoPreference } from '@/lib/mercadopago';
+import { sendNewOrderNotificationToAdmin } from '@/lib/email';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { recordOrderEvent, getRequestContext } from '@/lib/evidence';
 import { verifyCheckoutToken } from '@/lib/checkout-verification';
@@ -194,6 +195,25 @@ export async function POST(req: NextRequest) {
     createdOrderId = order.id;
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+
+    // Avisar al dueño en cuanto se registra el pedido (aunque el pago aún
+    // no esté confirmado). markOrderPaid envía el segundo aviso al pagarse.
+    if (order.guest_email) {
+      sendNewOrderNotificationToAdmin({
+        nombre: order.guest_nombre ?? null,
+        email: order.guest_email,
+        telefono: order.guest_telefono ?? null,
+        orderId: order.id,
+        items: verifiedItems,
+        total: finalTotal,
+        tipoEntrega: order.tipo_entrega ?? null,
+        zona: order.zona ?? null,
+        direccion: order.tipo_entrega === 'envio' ? (order.guest_direccion ?? null) : null,
+        formaPago: 'mp',
+        metodoPago: 'Mercado Pago',
+        pendienteDePago: true,
+      }).catch(() => { /* nunca bloquear el checkout por el mail */ });
+    }
 
     // Create Mercado Pago preference
     const { id: mpId, init_point } = await createMercadoPagoPreference({
