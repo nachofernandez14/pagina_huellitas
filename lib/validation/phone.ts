@@ -58,6 +58,6 @@ export function validateMendozaPhone(raw: string | undefined | null): PhoneValid
   return { valid: false, normalized: null, formatted: null };
 }
 
-/** User-facing error message for an invalid phone number. */
+/** User-facing error message for an invalid phone number (no real number example). */
 export const PHONE_ERROR_MESSAGE =
-  'Teléfono inválido. Ingresá un número de Mendoza, por ejemplo 261 495-3456.';
+  'Teléfono inválido. Usá 10 dígitos con el área de Mendoza: 261 XXX-XXXX.';

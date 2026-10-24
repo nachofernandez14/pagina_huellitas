@@ -5,6 +5,7 @@ import { sendOrderConfirmationEmail, sendNewOrderNotificationToAdmin } from '@/l
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { recordOrderEvent, getRequestContext } from '@/lib/evidence';
 import { verifyCheckoutToken } from '@/lib/checkout-verification';
+import { validateMendozaPhone, PHONE_ERROR_MESSAGE } from '@/lib/validation/phone';
 import type { CartItem, GuestCheckoutData } from '@/types';
 
 export async function POST(req: NextRequest) {
@@ -55,6 +56,12 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       );
     }
+    // Mendoza phone number, normalized to digits (e.g. "2614953456").
+    const phone = validateMendozaPhone(guest.telefono);
+    if (!phone.valid) {
+      return NextResponse.json({ error: PHONE_ERROR_MESSAGE }, { status: 400 });
+    }
+    guest.telefono = phone.normalized!;
   }
 
   let profileSnapshot: { nombre?: string | null; email?: string | null; telefono?: string | null } | undefined;

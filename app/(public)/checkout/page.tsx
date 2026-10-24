@@ -86,6 +86,7 @@ export default function CheckoutPage() {
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [telefono, setTelefono] = useState('');
+  const [phoneTouched, setPhoneTouched] = useState(false);
   const [tipoEntrega, setTipoEntrega] = useState<'retiro' | 'envio' | ''>('');
   const [zona, setZona] = useState('');
   const [direccion, setDireccion] = useState('');
@@ -525,13 +526,32 @@ export default function CheckoutPage() {
                         id="telefono"
                         type="tel"
                         value={telefono}
-                        onChange={(e) => setTelefono(e.target.value)}
-                        placeholder="261 495-3456"
+                        onChange={(e) => {
+                          setTelefono(e.target.value);
+                          setPhoneTouched(true);
+                        }}
+                        onBlur={() => setPhoneTouched(true)}
+                        placeholder="261 XXX-XXXX"
                         required
                         autoComplete="tel"
+                        aria-invalid={phoneTouched && !validateMendozaPhone(telefono).valid}
+                        aria-describedby="telefono-ayuda"
+                        style={phoneTouched && telefono && !validateMendozaPhone(telefono).valid
+                          ? { borderColor: 'var(--error)' }
+                          : undefined}
                       />
-                      <p style={{ fontSize: '0.75rem', color: 'var(--gray)', marginTop: '0.3rem' }}>
-                        Número de Mendoza sin 0 ni 15
+                      <p
+                        id="telefono-ayuda"
+                        role={phoneTouched && telefono && !validateMendozaPhone(telefono).valid ? 'alert' : undefined}
+                        style={{
+                          fontSize: '0.75rem',
+                          color: phoneTouched && telefono && !validateMendozaPhone(telefono).valid ? 'var(--error)' : 'var(--gray)',
+                          marginTop: '0.3rem',
+                        }}
+                      >
+                        {phoneTouched && telefono && !validateMendozaPhone(telefono).valid
+                          ? PHONE_ERROR_MESSAGE
+                          : 'Ingresá 10 dígitos de Mendoza, sin 0 ni 15.'}
                       </p>
                     </div>
 
