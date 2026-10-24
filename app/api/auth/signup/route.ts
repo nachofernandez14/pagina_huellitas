@@ -12,6 +12,11 @@ const NOMBRE_MAX = 100;
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
 export async function POST(req: NextRequest) {
+  if (!process.env.CLAVE_SECRETA || process.env.CLAVE_SECRETA.length < 32) {
+    console.error('[signup] CLAVE_SECRETA missing or shorter than 32 characters');
+    return NextResponse.json({ error: 'El registro no está disponible temporalmente.' }, { status: 503 });
+  }
+
   const ip = getClientIp(req);
   const rl = await checkRateLimit(`signup:${ip}`, 5, 15 * 60 * 1000);
   if (!rl.allowed) {
@@ -79,9 +84,15 @@ export async function POST(req: NextRequest) {
   const token = createVerificationToken(userId, normalizedEmail);
   const verificationLink = `${SITE_URL}/api/auth/confirm-email?token=${token}`;
 
-  await sendVerificationEmail(normalizedEmail, verificationLink).catch(() => {
-    // Error silencioso — el usuario se creó igual, puede reenviar desde login
-  });
+  let emailSent = true;
+  try {
+    await sendVerificationEmail(normalizedEmail, verificationLink);
+  } catch (sendError) {
+    // The account remains pending and cannot sign in or place an order until
+    // the address is confirmed. The UI directs the user to resend from login.
+    emailSent = false;
+    console.error('[signup] verification email delivery failed', sendError);
+  }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, emailSent });
 }

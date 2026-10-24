@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     }
   );
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data: signInData, error } = await supabase.auth.signInWithPassword({
     email: email.toLowerCase().trim(),
     password,
   });
@@ -68,6 +68,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email o contraseña incorrectos.' }, { status: 401 });
     }
     return NextResponse.json({ error: error.message }, { status: 401 });
+  }
+
+  // Explicit enforcement even if the Supabase project's email-confirmation
+  // setting is accidentally disabled. Never issue a session for an unverified
+  // address.
+  if (!signInData.user?.email_confirmed_at) {
+    await supabase.auth.signOut();
+    const unauthorized = NextResponse.json({
+      error: 'Email no confirmado. Revisá tu casilla de correo.',
+      emailNotConfirmed: true,
+    }, { status: 401 });
+    // Preserve the cookie-clearing values written by signOut; otherwise an
+    // accidental session from a misconfigured Supabase project could survive.
+    response.cookies.getAll().forEach((cookie) => unauthorized.cookies.set(cookie));
+    return unauthorized;
   }
 
   return response;

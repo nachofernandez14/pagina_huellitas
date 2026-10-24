@@ -37,7 +37,15 @@ export async function POST(req: NextRequest) {
     if (userData?.user && !userData.user.email_confirmed_at) {
       const token = createVerificationToken(profile.id, normalizedEmail);
       const verificationLink = `${SITE_URL}/api/auth/confirm-email?token=${token}`;
-      await sendVerificationEmail(normalizedEmail, verificationLink).catch(() => {});
+      try {
+        await sendVerificationEmail(normalizedEmail, verificationLink);
+      } catch (error) {
+        console.error('[resend-verification] delivery failed', error);
+        return NextResponse.json(
+          { error: 'No se pudo enviar el correo. Intentá nuevamente más tarde.' },
+          { status: 503 }
+        );
+      }
     }
   }
 

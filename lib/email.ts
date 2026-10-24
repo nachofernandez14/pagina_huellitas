@@ -388,7 +388,7 @@ export async function sendNewOrderNotificationToAdmin(params: {
 }
 
 export async function sendVerificationEmail(to: string, verificationLink: string) {
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to,
     subject: 'Confirmá tu email — Huellitas Petshop',
@@ -449,6 +449,7 @@ export async function sendVerificationEmail(to: string, verificationLink: string
     `,
     text: `Confirmá tu email — Huellitas Petshop\n\nGracias por registrarte. Hacé clic en este link para confirmar tu email:\n${verificationLink}\n\nSi no creaste una cuenta, ignorá este email.\nEl link vence en 24 horas.`,
   });
+  if (error) throw new Error(`No se pudo enviar el correo de verificación: ${error.message}`);
 }
 
 export async function sendWelcomeEmail(to: string, nombre: string) {

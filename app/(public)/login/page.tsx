@@ -20,6 +20,7 @@ function LoginForm() {
   const resetOk = searchParams.get('resetOk') === '1';
   const confirmed = searchParams.get('confirmed') === '1';
   const registered = searchParams.get('registered') === '1';
+  const emailSendFailed = searchParams.get('emailSendFailed') === '1';
   const verifyError = searchParams.get('error');
   const redirect = getSafeInternalRedirect(searchParams.get('redirect'), '/perfil');
 
@@ -43,9 +44,12 @@ function LoginForm() {
       if (res.ok) {
         setResent(true);
         setError('');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? 'No se pudo enviar el correo. Intentá más tarde.');
       }
     } catch {
-      // Silencio
+      setError('No se pudo enviar el correo. Revisá tu conexión e intentá nuevamente.');
     } finally {
       setResending(false);
     }
@@ -110,7 +114,9 @@ function LoginForm() {
 
         {registered && (
           <div className={styles.success}>
-            ¡Cuenta creada! Revisá tu casilla de correo para confirmar tu email antes de ingresar.
+            {emailSendFailed
+              ? 'La cuenta quedó pendiente de verificación, pero el envío del correo falló. Ingresá tu email abajo y usá «Reenviar verificación» luego de intentar iniciar sesión.'
+              : 'La cuenta quedó pendiente hasta confirmar el email. Revisá tu casilla de correo y spam antes de ingresar.'}
           </div>
         )}
         {confirmed && (

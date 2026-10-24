@@ -14,6 +14,7 @@ export default function RegistroPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [verificationEmailSent, setVerificationEmailSent] = useState(true);
   const [turnstileToken, setTurnstileToken] = useState('');
 
   const EMAIL_MAX = 254;
@@ -55,29 +56,34 @@ export default function RegistroPage() {
     }
 
     setLoading(true);
-    const res = await fetch('/api/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-      body: JSON.stringify({ email, password, nombre, turnstileToken }),
-    });
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ email: trimmedEmail, password, nombre: trimmedNombre, turnstileToken }),
+      });
 
-    const data = await res.json();
-    setLoading(false);
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? 'Error al crear la cuenta');
+        return;
+      }
 
-    if (!res.ok) {
-      setError(data.error ?? 'Error al crear la cuenta');
-      return;
+      setVerificationEmailSent(data.emailSent !== false);
+      setSuccess(true);
+    } catch {
+      setError('No se pudo completar el registro. Intentá nuevamente.');
+    } finally {
+      setLoading(false);
     }
-
-    setSuccess(true);
   };
 
   useEffect(() => {
     if (success) {
-      const t = setTimeout(() => router.push('/login?registered=1'), 2000);
+      const t = setTimeout(() => router.push(`/login?registered=1${verificationEmailSent ? '' : '&emailSendFailed=1'}`), 4000);
       return () => clearTimeout(t);
     }
-  }, [success, router]);
+  }, [success, verificationEmailSent, router]);
 
   if (success) {
     return (
@@ -86,9 +92,11 @@ export default function RegistroPage() {
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem' }}>
             <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
           </svg>
-          <h1 className={styles.title}>¡Cuenta creada!</h1>
+          <h1 className={styles.title}>Registro recibido</h1>
           <p className={styles.subtitle}>
-            Te enviamos un email para confirmar tu cuenta. Revisá tu casilla de correo.
+            {verificationEmailSent
+              ? 'La cuenta queda pendiente hasta que confirmes el email. Revisá tu casilla y spam; no vas a poder ingresar ni comprar con la cuenta antes de confirmarla.'
+              : 'La cuenta quedó pendiente, pero no pudimos enviar el correo de confirmación. No vas a poder ingresar ni comprar con la cuenta hasta verificar el email. Entrá a Ingresar y solicitá reenviar la verificación.'}
           </p>
         </div>
       </div>

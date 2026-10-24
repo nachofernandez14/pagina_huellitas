@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { verifyVerificationToken } from '@/lib/verification-token';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
@@ -27,6 +25,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/login?error=verificacion-invalida', SITE_URL));
   }
 
+  // The signed link must still match the account's current email. This also
+  // prevents a stale link from confirming a subsequently changed address.
+  if (userData.user.email?.toLowerCase().trim() !== email.toLowerCase().trim()) {
+    return NextResponse.redirect(new URL('/login?error=verificacion-invalida', SITE_URL));
+  }
+
   if (userData.user.email_confirmed_at) {
     return NextResponse.redirect(new URL('/login?confirmed=1', SITE_URL));
   }
@@ -40,37 +44,4 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.redirect(new URL('/login?confirmed=1', SITE_URL));
-}
-
-// POST /api/auth/confirm-email — confirma el email del usuario autenticado
-export async function POST(req: NextRequest) {
-  const ip = getClientIp(req);
-  const rl = await checkRateLimit(`confirm-email:${ip}`, 5, 15 * 60 * 1000);
-  if (!rl.allowed) {
-    return NextResponse.json(
-      { error: 'Demasiados intentos. Esperá unos minutos.' },
-      {
-        status: 429,
-        headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
-      }
-    );
-  }
-
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-  }
-
-  const admin = createAdminClient();
-  const { error } = await admin.auth.admin.updateUserById(user.id, {
-    email_confirm: true,
-  });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ ok: true });
 }
