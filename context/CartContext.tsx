@@ -6,6 +6,7 @@ import React, {
   useContext,
   useEffect,
   useReducer,
+  useRef,
 } from 'react';
 import type { CartContextValue, CartItem, Product } from '@/types';
 
@@ -98,6 +99,9 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [] });
+  // Evita que la primera corrida del efecto de persistencia pise lo
+  // guardado antes de que corra el HYDRATE (borra el carrito en StrictMode).
+  const skipPersist = useRef(true);
 
   useEffect(() => {
     try {
@@ -112,6 +116,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (skipPersist.current) {
+      skipPersist.current = false;
+      return;
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.items));
   }, [state.items]);
 

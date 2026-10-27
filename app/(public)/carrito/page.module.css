@@ -97,7 +97,7 @@
 .subtotal {
   font-weight: 700;
   white-space: nowrap;
-  color: var(--accent);
+  color: var(--dark);
   min-width: 90px;
   text-align: right;
 }
@@ -136,7 +136,7 @@
 .total {
   font-weight: 700;
   font-size: 1.1rem;
-  color: var(--green-dark);
+  color: var(--dark);
 }
 
 @media (max-width: 640px) {

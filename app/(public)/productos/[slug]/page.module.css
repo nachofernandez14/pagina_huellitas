@@ -171,7 +171,7 @@
 .price {
   font-size: 2rem;
   font-weight: 800;
-  color: var(--green-dark);
+  color: var(--dark);
   font-family: var(--font-title);
 }
 
@@ -179,6 +179,50 @@
   font-size: 1.1rem;
   color: var(--gray);
   font-style: italic;
+}
+
+/* ── Unit price / taxes strip ────────────────────────────── */
+.priceMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.9rem;
+  background: var(--white);
+  border: 1px solid var(--gray-light);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 1rem;
+  width: fit-content;
+  max-width: 100%;
+  font-size: 0.8rem;
+  color: var(--gray);
+  margin-top: -0.6rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.priceMeta > *:not(:first-child) {
+  border-left: 1px solid var(--gray-light);
+  padding-left: 0.9rem;
+}
+
+.priceMetaKg {
+  font-family: var(--font-title);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.priceMetaUnit {
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--gray);
+}
+
+.priceMetaTax strong {
+  font-weight: 700;
+  color: var(--dark);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Variants ────────────────────────────────────────────── */

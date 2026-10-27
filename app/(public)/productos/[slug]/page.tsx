@@ -113,6 +113,14 @@ export default async function ProductDetailPage({ params }: Props) {
 
   const displayPrice = hasDiscount ? product.descuento! : product.precio;
 
+  // Precio por kg (unidad de medida) — Ley 24.240 / Res. SC 100-1998: obligatorio para ventas al por menor.
+  const kgValue = parseFloat(product.kg ?? '') || 0;
+  const pricePerKg = displayPrice != null && kgValue > 0 ? displayPrice / kgValue : null;
+
+  // Precio sin impuestos nacionales (IVA 21% incluido en el precio final) — Res. 24/2024 SC.
+  const priceWithoutTaxes =
+    displayPrice != null ? Math.round(displayPrice / 1.21) : null;
+
   const categoryLabel: Record<string, string> = {
     perros: 'Perro adulto',
     cachorros: 'Perro cachorro',
@@ -277,6 +285,21 @@ export default async function ProductDetailPage({ params }: Props) {
                 <span className={styles.noPrice}>Consultar precio</span>
               )}
             </div>
+            {(pricePerKg != null || priceWithoutTaxes != null) && (
+              <div className={styles.priceMeta}>
+                {pricePerKg != null && (
+                  <span className={styles.priceMetaKg}>
+                    {formatPrice(pricePerKg)}
+                    <span className={styles.priceMetaUnit}>/kg</span>
+                  </span>
+                )}
+                {priceWithoutTaxes != null && (
+                  <span className={styles.priceMetaTax}>
+                    Precio sin impuestos nacionales: <strong>{formatPrice(priceWithoutTaxes)}</strong>
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Variants */}
             {hasVariants && (

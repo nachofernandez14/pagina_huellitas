@@ -183,7 +183,7 @@
 .totalAmount {
   font-family: var(--font-title);
   font-size: 1.6rem;
-  color: var(--green-dark);
+  color: var(--dark);
 }
 
 .mpNote {
