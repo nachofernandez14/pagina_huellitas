@@ -143,7 +143,23 @@ export default function ProductosAdmin() {
           <h1 className={styles.title}>Productos</h1>
           <p style={{ color: 'var(--gray)', fontSize: '0.875rem' }}>{total} producto{total !== 1 ? 's' : ''}</p>
         </div>
-        <button className="btn btn-primary" onClick={openNew}>+ Nuevo producto</button>
+        <div className={styles.headerActions}>
+          <a
+            className={styles.exportBtn}
+            href="/api/admin/products/export"
+            title="Exportar todos los productos (CSV)"
+          >
+            ⬇ CSV
+          </a>
+          <a
+            className={styles.exportBtn}
+            href="/api/admin/photos/export"
+            title="Descargar todas las fotos de productos (ZIP)"
+          >
+            ⬇ Fotos (ZIP)
+          </a>
+          <button className="btn btn-primary" onClick={openNew}>+ Nuevo producto</button>
+        </div>
       </div>
 
       <Toast message={msg} onDismiss={() => setMsg('')} />
